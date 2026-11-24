@@ -1,0 +1,68 @@
+name: Backup mingguan
+
+# Dump database Supabase + salin media R2 ke penyimpanan terpisah (S3-compatible), terenkripsi.
+# Secrets repository yang dibutuhkan (Settings → Secrets and variables → Actions):
+#   SUPABASE_DB_URL        connection string "Session pooler" Supabase (port 5432). Runner GitHub tidak punya IPv6,
+#                          jadi jangan pakai host direct db.<ref>.supabase.co.
+#   BACKUP_PASSPHRASE      kata sandi enkripsi dump (simpan juga di password manager, tanpa ini dump tidak bisa dibuka)
+#   BACKUP_S3_ENDPOINT     endpoint tujuan, mis. https://<account>.r2.cloudflarestorage.com (sebaiknya akun/penyedia BERBEDA dari produksi)
+#   BACKUP_S3_BUCKET, BACKUP_S3_KEY_ID, BACKUP_S3_SECRET
+#   R2_ENDPOINT, R2_KEY_ID, R2_SECRET   kredensial baca (read-only) bucket produksi rutusdev-media
+on:
+  schedule:
+    - cron: '17 19 * * 0'   # Minggu 19:17 UTC = Senin 02:17 WIB
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: backup
+  cancel-in-progress: false
+
+jobs:
+  backup:
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    steps:
+      - name: Pasang klien PostgreSQL 17 dan rclone
+        run: |
+          sudo install -d /usr/share/postgresql-common/pgdg
+          sudo curl -fsSL -o /usr/share/postgresql-common/pgdg/apt.postgresql.org.asc https://www.postgresql.org/media/keys/ACCC4CF8.asc
+          echo "deb [signed-by=/usr/share/postgresql-common/pgdg/apt.postgresql.org.asc] https://apt.postgresql.org/pub/repos/apt $(lsb_release -cs)-pgdg main" | sudo tee /etc/apt/sources.list.d/pgdg.list
+          sudo apt-get update -qq
+          sudo apt-get install -y -qq postgresql-client-17 rclone
+
+      - name: Dump database (terenkripsi)
+        env:
+          SUPABASE_DB_URL: ${{ secrets.SUPABASE_DB_URL }}
+          BACKUP_PASSPHRASE: ${{ secrets.BACKUP_PASSPHRASE }}
+        run: |
+          set -euo pipefail
+          STAMP=$(date -u +%F)
+          /usr/lib/postgresql/17/bin/pg_dump "$SUPABASE_DB_URL" --no-owner --format=custom --schema=public -f db.dump
+          test "$(stat -c%s db.dump)" -gt 1000   # dump kosong = gagal
+          gpg --batch --yes --pinentry-mode loopback --passphrase "$BACKUP_PASSPHRASE" --symmetric --cipher-algo AES256 -o "rutusdev-$STAMP.dump.gpg" db.dump
+          rm db.dump
+          echo "STAMP=$STAMP" >> "$GITHUB_ENV"
+
+      - name: Unggah dump, sinkron media, hapus dump > 90 hari
+        env:
+          RCLONE_CONFIG_DST_TYPE: s3
+          RCLONE_CONFIG_DST_PROVIDER: Other
+          RCLONE_CONFIG_DST_ENDPOINT: ${{ secrets.BACKUP_S3_ENDPOINT }}
+          RCLONE_CONFIG_DST_ACCESS_KEY_ID: ${{ secrets.BACKUP_S3_KEY_ID }}
+          RCLONE_CONFIG_DST_SECRET_ACCESS_KEY: ${{ secrets.BACKUP_S3_SECRET }}
+          RCLONE_CONFIG_SRC_TYPE: s3
+          RCLONE_CONFIG_SRC_PROVIDER: Cloudflare
+          RCLONE_CONFIG_SRC_ENDPOINT: ${{ secrets.R2_ENDPOINT }}
+          RCLONE_CONFIG_SRC_ACCESS_KEY_ID: ${{ secrets.R2_KEY_ID }}
+          RCLONE_CONFIG_SRC_SECRET_ACCESS_KEY: ${{ secrets.R2_SECRET }}
+          BUCKET: ${{ secrets.BACKUP_S3_BUCKET }}
+        run: |
+          set -euo pipefail
+          rclone copyto "rutusdev-$STAMP.dump.gpg" "dst:$BUCKET/db/rutusdev-$STAMP.dump.gpg"
+          # 'sync' menyalin perubahan; media yang dihapus di produksi ikut terhapus di salinan (versi DB lama tetap ada di folder db/)
+          rclone sync src:rutusdev-media "dst:$BUCKET/media" --fast-list --transfers 8
+          rclone delete "dst:$BUCKET/db" --min-age 90d
+          rclone ls "dst:$BUCKET/db" | tail -5

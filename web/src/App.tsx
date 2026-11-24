@@ -1,15 +1,11 @@
-import { useEffect, useRef, useState } from 'react';
+import { useEffect, useRef, useState, type ReactNode } from 'react';
 import Dots from './Dots';
 import Contact from './Contact';
 import Deck from './Deck';
 import { onScrollFrame, clamp, reducedMotion } from './scroll';
 import { useContent } from './useContent';
-import type { Article, Project, Testimonial } from './types';
+import type { Article, Project, Stats, Testimonial } from './types';
 
-const DEFAULT_TESTI: Testimonial[] = [
-  { client_name: 'Nama Klien', organization: 'Organisasi', quote: 'Testimoni klien ditampilkan di sini, hanya dengan izin publikasi.' },
-  { client_name: 'Nama Klien', organization: 'Organisasi', quote: 'Proses jelas dari konsultasi sampai peluncuran.' },
-];
 const STEPS = [
   ['Konsultasi', 'Positioning, layanan, struktur halaman, dan konten.'], ['Desain', 'Design token, komponen, dan prototipe responsif.'],
   ['Pengembangan', 'Frontend, CMS, API, dan pustaka media.'], ['Peluncuran', 'SEO, keamanan, uji kualitas, cadangan data, dan rilis.'],
@@ -155,14 +151,6 @@ function Work({ items }: { items: Project[] }) {
               <div className="box b3"><span>API Worker</span></div>
             </div>
           </article>
-          <article className="dcard">
-            <div className="dhead"><h3>Cepat di segala skala</h3></div>
-            <svg viewBox="0 0 300 150" className="spark" role="img" aria-label="Grafik performa">
-              <line x1="0" y1="26" x2="300" y2="26" stroke="#555" strokeDasharray="3 4" />
-              <polyline points="0,138 40,110 80,104 120,106 160,70 200,64 240,48 300,18" fill="none" stroke="#6475ff" strokeWidth="2.5" />
-              <g fill="#777" fontFamily="JetBrains Mono, monospace" fontSize="9"><text x="2" y="130">MINGGU 1</text><text x="100" y="146">2</text><text x="190" y="146">3</text><text x="270" y="146">4</text></g>
-            </svg>
-          </article>
         </>)}
       </div>
     </section>
@@ -187,27 +175,35 @@ function Quote({ x }: { x: Testimonial }) {
   );
 }
 
-function Trust({ t }: { t: Testimonial[] }) {
+// Hanya data asli: testimoni & statistik berasal dari CMS (Admin → Testimoni / Pengaturan). Kosong = tidak tampil.
+function statList(st?: Stats): [string, string][] {
+  const o: [string, string][] = [];
+  if (st?.projects?.trim()) o.push([st.projects.trim(), 'Proyek selesai']);
+  if (st?.timeline?.trim()) o.push([st.timeline.trim(), 'Minggu hingga situs live']);
+  o.push(['1×24', 'Jam kerja untuk balasan pertama']);
+  return o;
+}
+
+function Trust({ t, stats }: { t: Testimonial[]; stats?: Stats }) {
   const root = useRef<HTMLElement>(null);
   useEffect(() => {
     const el = root.current!, cr = el.querySelector<HTMLElement>('.corners')!;
     if (reducedMotion()) { cr.style.setProperty('--s', '1'); return; }
     return onScrollFrame((_, vh) => { cr.style.setProperty('--s', String(clamp(el.getBoundingClientRect().top / (vh * 0.45)))); });
   }, []);
+  const qs = t.slice(0, 2), st = statList(stats), cells: ReactNode[] = [];
+  for (let i = 0; i < Math.max(qs.length, st.length); i++) {
+    if (qs[i]) cells.push(<Quote key={'q' + i} x={qs[i]} />);
+    if (st[i]) cells.push(<div className="stat" key={'s' + i}><b>{st[i][0]}</b><span>{st[i][1]}</span></div>);
+  }
+  cells.push(<div className="art" key="art" aria-hidden="true" />);
   return (
     <section className="blue" id="trust" data-nav="blue" ref={root}>
       <i className="corners top" aria-hidden="true" />
       <div className="wrap">
         <p className="pill pill-blue">Bersama klien</p>
         <h2><b>Fondasi tepercaya untuk proyek klien dari berbagai skala.</b></h2>
-        <div className="bgrid">
-          <Quote x={t[0]} />
-          <div className="stat"><b>12+</b><span>Proyek selesai</span></div>
-          <Quote x={t[1]} />
-          <div className="stat"><b>4–6</b><span>Minggu hingga situs live</span></div>
-          <div className="art" aria-hidden="true" />
-          <div className="stat"><b>1×24</b><span>Jam kerja untuk balasan pertama</span></div>
-        </div>
+        <div className="bgrid">{cells}</div>
         <div className="seals-h"><svg viewBox="0 0 76 24" className="checks" aria-hidden="true">{[12, 38, 64].map(cx => <g key={cx}><circle cx={cx} cy="12" r="10" fill="none" stroke="#fff" strokeWidth="1.5" /><path d={`M${cx - 4} 12.5l3 3 5-6`} fill="none" stroke="#fff" strokeWidth="1.6" strokeLinecap="round" /></g>)}</svg>
           <h3>Keamanan yang dapat Anda percaya</h3></div>
         <div className="seals">
@@ -221,9 +217,9 @@ function Trust({ t }: { t: Testimonial[] }) {
   );
 }
 
-function Ticker() {
+function Ticker({ stats }: { stats?: Stats }) {
   const slogan = [...Array(3)].map((_, i) => <span key={i}>RANCANG. BANGUN. LUNCURKAN.</span>);
-  const info = ['Proyek selesai: 12+', 'Waktu hingga situs live: 4–6 minggu', 'Balasan pertama: 1×24 jam kerja'];
+  const info = [stats?.projects?.trim() && `Proyek selesai: ${stats.projects.trim()}`, stats?.timeline?.trim() && `Waktu hingga situs live: ${stats.timeline.trim()} minggu`, 'Balasan pertama: 1×24 jam kerja'].filter(Boolean) as string[];
   const items = [...Array(2)].flatMap((_, k) => info.map((x, i) => <span key={`${k}-${i}`}><Mark />{x.toUpperCase()}</span>));
   return (
     <div className="runon" aria-hidden="true" data-nav="blue">
@@ -334,9 +330,9 @@ function Progress() {
 export default function App() {
   const c = useContent(), s = c?.settings, h = s?.hero ?? {}, ct = s?.contact ?? {};
   useReveal(c);
-  const wa = /^\d{6,16}$/.test(ct.whatsapp || '') ? ct.whatsapp! : '6280000000000';
+  const wa = /^\d{6,16}$/.test(ct.whatsapp || '') ? ct.whatsapp! : '';  // kosong = tombol WhatsApp disembunyikan (tidak ada nomor palsu)
   const email = /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(ct.email || '') ? ct.email! : 'hello@rutusdev.com';
-  const testi = [0, 1].map(i => c?.testimonials?.[i] ?? DEFAULT_TESTI[i]);
+  const testi = (c?.testimonials ?? []).slice(0, 2);
   return (
     <>
       <Progress />
@@ -345,8 +341,8 @@ export default function App() {
         <Hero h={h} />
         <Services items={c?.services ?? []} />
         <Work items={c?.projects ?? []} />
-        <Trust t={testi} />
-        <Ticker />
+        <Trust t={testi} stats={s?.stats} />
+        <Ticker stats={s?.stats} />
         <Process />
         <Articles items={c?.articles ?? []} />
         <Contact wa={wa} email={email} />

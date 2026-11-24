@@ -8,7 +8,8 @@
     "build": "vite build web",
     "typecheck": "tsc -p web",
     "postinstall": "vite build web",
-    "deploy": "npm run build && wrangler deploy"
+    "deploy": "npm run check:release && npm run build && wrangler deploy",
+    "check:release": "node scripts/check-release.mjs"
   },
   "dependencies": {
     "react": "^18.3.1",

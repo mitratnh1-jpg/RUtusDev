@@ -4,8 +4,10 @@ export interface Env {
   ASSETS: Fetcher; MEDIA: R2Bucket;
   SUPABASE_URL: string; SUPABASE_ANON_KEY: string;
   SUPABASE_SERVICE_ROLE_KEY: string; TURNSTILE_SECRET: string; // secrets
-  ALLOWED_ORIGIN?: string;
+  ALLOWED_ORIGIN?: string; TURNSTILE_SITE_KEY?: string; CF_BEACON_TOKEN?: string;
+  NOTIFY_TO?: string; NOTIFY_FROM?: string; RESEND_API_KEY?: string; NOTIFY_WEBHOOK_URL?: string; // notifikasi lead (secret: RESEND_API_KEY, NOTIFY_WEBHOOK_URL)
   RATE_LIMITER?: { limit(o: { key: string }): Promise<{ success: boolean }> };
+  RATE_LIMITER_ADMIN?: { limit(o: { key: string }): Promise<{ success: boolean }> };
 }
 type Cfg = { cols: string[]; order: string; create?: boolean; del?: boolean };
 const TABLES: Record<string, Cfg> = {
@@ -28,9 +30,10 @@ const UUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/;
 const SETTINGS: Record<string, string[]> = {
   hero: ['eyebrow','headline','headline_dim','subheadline','cta_primary','cta_secondary'],
   contact: ['whatsapp','email'],
+  stats: ['projects','timeline'],
 };
-// Fallback rate limit (Cache API, per-lokasi). Tidak berfungsi di domain *.workers.dev; pakai domain sendiri
-// atau binding RATE_LIMITER / aturan WAF untuk perlindungan yang lebih kuat.
+// Fallback rate limit (Cache API, per-lokasi). Tidak berfungsi di domain *.workers.dev.
+// Jalur utama: binding `ratelimits` di wrangler.jsonc (RATE_LIMITER / RATE_LIMITER_ADMIN).
 async function limited(ip: string, bucket: string, max: number): Promise<boolean> {
   const c = caches.default, k = new Request(`https://rl.internal/${bucket}/${encodeURIComponent(ip)}`);
   let n = 0, t = Date.now();
@@ -40,6 +43,36 @@ async function limited(ip: string, bucket: string, max: number): Promise<boolean
   const ttl = Math.max(1, 60 - Math.floor((Date.now() - t) / 1000));
   await c.put(k, new Response(JSON.stringify({ n, t }), { headers: { 'Cache-Control': `max-age=${ttl}` } }));
   return n > max;
+}
+type RL = { limit(o: { key: string }): Promise<{ success: boolean }> } | undefined;
+// true = harus ditolak. Pakai binding bila ada, jika tidak jatuh ke fallback Cache API.
+async function overLimit(rl: RL, ip: string, bucket: string, max: number): Promise<boolean> {
+  if (rl) { try { return !(await rl.limit({ key: `${bucket}:${ip}` })).success; } catch (e) { console.error('ratelimit', e); } }
+  return limited(ip, bucket, max);
+}
+
+const esc = (s: unknown) => String(s ?? '').replace(/[&<>"']/g, c => ({ '&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;' }[c]!));
+const SERVICE_LABEL: Record<string, string> = { website: 'Website / landing page', webapp: 'Aplikasi web', system: 'Sistem informasi', custom: 'Aplikasi custom' };
+// Notifikasi lead baru: email lewat Resend dan/atau webhook (mis. n8n/Make/Zapier untuk WhatsApp, Telegram, Slack).
+// Dijalankan lewat ctx.waitUntil: kegagalan hanya dicatat di log dan tidak menggagalkan pengiriman form.
+async function notifyLead(env: Env, l: { name: string; email: string; whatsapp: string | null; service: string; brief: string | null }) {
+  const svc = SERVICE_LABEL[l.service] || l.service;
+  const jobs: Promise<unknown>[] = [];
+  const to = (env.NOTIFY_TO || '').split(',').map(s => s.trim()).filter(Boolean).slice(0, 5);
+  if (env.RESEND_API_KEY && to.length) {
+    const html = `<h2>Prospek baru dari website</h2><p><b>Nama:</b> ${esc(l.name)}<br><b>Email:</b> ${esc(l.email)}<br><b>WhatsApp:</b> ${esc(l.whatsapp || '-')}<br><b>Layanan:</b> ${esc(svc)}</p><p><b>Kebutuhan:</b><br>${esc(l.brief || '-').replace(/\n/g, '<br>')}</p>`;
+    jobs.push(fetch('https://api.resend.com/emails', { method: 'POST',
+      headers: { Authorization: `Bearer ${env.RESEND_API_KEY}`, 'Content-Type': 'application/json' },
+      body: JSON.stringify({ from: env.NOTIFY_FROM || 'RUtusdev <leads@rutusdev.com>', to, reply_to: l.email, subject: `Prospek baru: ${l.name.slice(0, 60)} (${svc})`, html }) })
+      .then(r => { if (!r.ok) console.error('notify email', r.status); }));
+  }
+  if (env.NOTIFY_WEBHOOK_URL && /^https:\/\//.test(env.NOTIFY_WEBHOOK_URL)) {
+    const text = `Prospek baru: ${l.name} · ${l.email}${l.whatsapp ? ' · WA ' + l.whatsapp : ''} · ${svc}${l.brief ? '\n' + l.brief.slice(0, 500) : ''}`;
+    jobs.push(fetch(env.NOTIFY_WEBHOOK_URL, { method: 'POST', headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ text, content: text, event: 'lead.created', lead: l }) })
+      .then(r => { if (!r.ok) console.error('notify webhook', r.status); }));
+  }
+  await Promise.allSettled(jobs);
 }
 const SERVICES = ['website','webapp','system','custom'];
 const json = (d: unknown, s = 200, h: Record<string,string> = {}) =>
@@ -85,7 +118,7 @@ function pick(cfg: Cfg, body: Record<string, unknown>) {
 async function admin(req: Request, env: Env, parts: string[]): Promise<Response> {
   const origin = req.headers.get('Origin');
   if (req.method !== 'GET' && origin && origin !== (env.ALLOWED_ORIGIN || new URL(req.url).origin)) return json({ error: 'forbidden' }, 403);
-  if (await limited(req.headers.get('CF-Connecting-IP') || 'unknown', 'admin', 120)) return json({ error: 'rate_limited' }, 429);
+  if (await overLimit(env.RATE_LIMITER_ADMIN, req.headers.get('CF-Connecting-IP') || 'unknown', 'admin', 120)) return json({ error: 'rate_limited' }, 429);
   const me = await auth(req, env);
   if (!me) return json({ error: 'unauthorized' }, 401);
   const [table, id, action] = parts;
@@ -201,12 +234,11 @@ async function publicContent(req: Request, env: Env, ctx: ExecutionContext): Pro
   return res;
 }
 
-async function handleLead(req: Request, env: Env): Promise<Response> {
+async function handleLead(req: Request, env: Env, ctx: ExecutionContext): Promise<Response> {
   const origin = req.headers.get('Origin');
   if (origin && origin !== (env.ALLOWED_ORIGIN || new URL(req.url).origin)) return json({ error: 'forbidden' }, 403);
   const ip = req.headers.get('CF-Connecting-IP') || 'unknown';
-  const blocked = env.RATE_LIMITER ? !(await env.RATE_LIMITER.limit({ key: ip })).success : await limited(ip, 'lead', 5);
-  if (blocked) return json({ error: 'rate_limited' }, 429);
+  if (await overLimit(env.RATE_LIMITER, ip, 'lead', 5)) return json({ error: 'rate_limited' }, 429);
   const raw = await req.text();
   if (raw.length > 8000) return json({ error: 'too_large' }, 413);
   let body: Record<string, unknown>;
@@ -225,6 +257,7 @@ async function handleLead(req: Request, env: Env): Promise<Response> {
   const res = await sb(env, 'leads', { method: 'POST', headers: { Prefer: 'return=minimal' },
     body: JSON.stringify({ name, email, whatsapp: whatsapp || null, service_interest: service, brief: brief || null }) });
   if (!res.ok) { console.error('supabase', res.status); return json({ error: 'server' }, 502); }
+  ctx.waitUntil(notifyLead(env, { name, email, whatsapp: whatsapp || null, service, brief: brief || null }));
   return json({ ok: true }, 201);
 }
 
@@ -241,8 +274,11 @@ export default {
     const { pathname } = new URL(req.url);
     try {
       if (pathname === '/api/health') return json({ ok: true });
+      // Konfigurasi publik halaman admin: satu sumber (wrangler vars), tidak perlu mengedit config.js manual.
+      if (pathname === '/admin/config.js') return new Response(`window.CFG = ${JSON.stringify({ SUPABASE_URL: env.SUPABASE_URL, ANON_KEY: env.SUPABASE_ANON_KEY, TURNSTILE_SITE_KEY: env.TURNSTILE_SITE_KEY || '' })};\n`,
+        { headers: { 'Content-Type': 'application/javascript; charset=utf-8', 'Cache-Control': 'no-store' } });
       if (pathname === '/api/public/content' && req.method === 'GET') return publicContent(req, env, ctx);
-      if (pathname === '/api/leads') return req.method === 'POST' ? handleLead(req, env) : json({ error: 'method' }, 405);
+      if (pathname === '/api/leads') return req.method === 'POST' ? handleLead(req, env, ctx) : json({ error: 'method' }, 405);
       if (pathname.startsWith('/api/admin/')) return admin(req, env, pathname.slice(11).split('/').filter(Boolean));
       if (pathname.startsWith('/media/') && req.method === 'GET') return media(env, pathname.slice(7));
       if (pathname.startsWith('/api/')) return json({ error: 'not_found' }, 404);

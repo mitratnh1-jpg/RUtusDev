@@ -2,10 +2,11 @@ import { useEffect, useRef, useState, type FormEvent } from 'react';
 
 type St = { t: 'idle' | 'busy' | 'ok' | 'err'; m: string };
 
-export default function Contact({ wa, email }: { wa: string; email: string }) {
+export default function Contact({ wa, email }: { wa?: string; email: string }) {
   const [st, setSt] = useState<St>({ t: 'idle', m: '' });
   const box = useRef<HTMLDivElement>(null), wid = useRef<string>();
-  const key = import.meta.env.VITE_TURNSTILE_SITE_KEY as string | undefined;
+  const rawKey = import.meta.env.VITE_TURNSTILE_SITE_KEY as string | undefined;
+  const key = rawKey && !/^GANTI/i.test(rawKey) ? rawKey : undefined;  // placeholder dianggap belum diisi
 
   useEffect(() => {
     if (!key) return;
@@ -26,7 +27,7 @@ export default function Contact({ wa, email }: { wa: string; email: string }) {
       if (r.status === 429) return setSt({ t: 'err', m: 'Terlalu banyak percobaan. Tunggu sebentar.' });
       if (!r.ok) throw new Error();
       f.reset(); setSt({ t: 'ok', m: 'Terkirim. Kami akan menghubungi Anda segera.' });
-    } catch { setSt({ t: 'err', m: 'Gagal mengirim. Coba lagi, atau gunakan WhatsApp/email.' }); }
+    } catch { setSt({ t: 'err', m: 'Gagal mengirim. Coba lagi, atau hubungi lewat email.' }); }
     window.turnstile?.reset(wid.current);
   }
 
@@ -38,7 +39,7 @@ export default function Contact({ wa, email }: { wa: string; email: string }) {
           <h2><b>Ceritakan apa yang ingin Anda bangun.</b></h2>
           <p className="lead">Kami balas dalam 1×24 jam kerja.</p>
           <p className="links">
-            <a href={`https://wa.me/${wa}?text=${encodeURIComponent('Halo RUtusdev, saya ingin konsultasi proyek.')}`}>WhatsApp <i>→</i></a>
+            {wa && <a href={`https://wa.me/${wa}?text=${encodeURIComponent('Halo RUtusdev, saya ingin konsultasi proyek.')}`}>WhatsApp <i>→</i></a>}
             <a href={`mailto:${email}`}>{email} <i>→</i></a>
           </p>
         </div>

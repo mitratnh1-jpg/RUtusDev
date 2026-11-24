@@ -24,6 +24,7 @@ label{display:grid;gap:4px;color:var(--dim);font-size:13px}label.c{display:flex;
 @media(max-width:700px){.cols{grid-template-columns:1fr}}
 @media(max-width:700px){#app{grid-template-columns:1fr}nav{grid-auto-flow:column;overflow:auto}}
 </style></head><body>
-<form id="login"><h1>Admin RUtusdev</h1><input id="em" type="email" placeholder="Email" required autocomplete="username"><input id="pw" type="password" placeholder="Kata sandi" required autocomplete="current-password"><button>Masuk</button><p class="err" id="lerr"></p></form>
+<form id="login"><h1>Admin RUtusdev</h1><input id="em" type="email" placeholder="Email" required autocomplete="username"><input id="pw" type="password" placeholder="Kata sandi" required autocomplete="current-password"><button>Masuk</button><div id="cap"></div><p class="err" id="lerr"></p></form>
 <div id="app"><nav id="nav"></nav><main id="main"></main></div>
+<script src="https://challenges.cloudflare.com/turnstile/v0/api.js?render=explicit" async defer></script>
 <script src="config.js"></script><script src="admin.js"></script></body></html>

@@ -2,11 +2,25 @@
   "name": "rutusdev",
   "main": "worker/index.ts",
   "compatibility_date": "2026-11-01",
-  "assets": { "directory": "./web/dist", "binding": "ASSETS", "run_worker_first": ["/api/*", "/media/*", "/articles", "/articles/*", "/work/*", "/sitemap.xml", "/robots.txt"] },
+  "observability": { "enabled": true },
+  "assets": { "directory": "./web/dist", "binding": "ASSETS", "run_worker_first": ["/api/*", "/media/*", "/articles", "/articles/*", "/work/*", "/sitemap.xml", "/robots.txt", "/admin/config.js"] },
   "r2_buckets": [{ "binding": "MEDIA", "bucket_name": "rutusdev-media" }],
+  // Rate Limiting binding bawaan Cloudflare (aktif juga di *.workers.dev). period hanya boleh 10 atau 60 detik.
+  "ratelimits": [
+    { "name": "RATE_LIMITER", "namespace_id": "1001", "simple": { "limit": 5, "period": 60 } },
+    { "name": "RATE_LIMITER_ADMIN", "namespace_id": "1002", "simple": { "limit": 120, "period": 60 } }
+  ],
   "vars": {
+    // WAJIB DIISI sebelum rilis (npm run check:release akan gagal selama masih GANTI):
     "SUPABASE_URL": "https://GANTI.supabase.co",
     "SUPABASE_ANON_KEY": "GANTI_ANON_KEY",
-    "ALLOWED_ORIGIN": "https://rutusdev.com"
+    "ALLOWED_ORIGIN": "https://rutusdev.com",
+    // Site key Turnstile (publik). Dipakai juga oleh halaman login admin.
+    "TURNSTILE_SITE_KEY": "GANTI_TURNSTILE_SITE_KEY",
+    // Notifikasi lead via email (Resend). Secret RESEND_API_KEY diset lewat `wrangler secret put`.
+    "NOTIFY_TO": "",
+    "NOTIFY_FROM": "RUtusdev <leads@rutusdev.com>",
+    // Token Cloudflare Web Analytics (kosong = nonaktif)
+    "CF_BEACON_TOKEN": ""
   }
 }

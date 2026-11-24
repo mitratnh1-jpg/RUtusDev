@@ -31,6 +31,9 @@ async function get<T = any[]>(env: Env, path: string): Promise<T> {
   return (r.ok ? r.json() : []) as Promise<T>;
 }
 
+let BEACON = ''; // token Cloudflare Web Analytics (diisi dari env tiap request; konstan per deployment)
+const beacon = () => (/^[a-f0-9]{32}$/i.test(BEACON) ? `<script defer src="https://static.cloudflareinsights.com/beacon.min.js" data-cf-beacon='{"token":"${BEACON}"}'></script>` : '');
+
 type Page = { title: string; desc: string; path: string; og?: string; type?: string; body: string; ld?: unknown; status?: number };
 function layout(origin: string, p: Page): Response {
   const url = origin + p.path, img = p.og ? `${origin}/media/${esc(p.og)}` : '';
@@ -44,7 +47,7 @@ function layout(origin: string, p: Page): Response {
 <link rel="stylesheet" href="/styles.css">${p.ld ? ld(p.ld) : ''}</head><body>
 <header class="nav"><a class="logo" href="/"><svg class="mark" viewBox="0 0 24 24" aria-hidden="true"><rect x="2" y="13" width="6" height="6" rx="1.5"/><rect x="9" y="13" width="6" height="6" rx="1.5"/><rect x="16" y="13" width="6" height="6" rx="1.5"/><rect x="9" y="5" width="6" height="6" rx="1.5"/></svg>RUtusdev</a><nav class="nav-links"><a href="/#services">Layanan</a><a href="/#work">Karya</a><a href="/articles">Artikel</a><a href="/#contact">Kontak</a></nav><div class="nav-actions"><a class="btn btn-ghost" href="/articles">Artikel</a><a class="btn btn-blue" href="/#contact">Hubungi kami</a></div></header>
 <main class="doc"><div class="wrap">${p.body}</div></main>
-<footer class="foot dark"><div class="wrap"><a class="logo" href="/">RUtusdev</a><p>Rancang. Bangun. Luncurkan.</p></div></footer></body></html>`;
+<footer class="foot dark"><div class="wrap"><a class="logo" href="/">RUtusdev</a><p>Rancang. Bangun. Luncurkan.</p></div></footer>${beacon()}</body></html>`;
   return new Response(html, { status: p.status || 200, headers: { 'Content-Type': 'text/html; charset=utf-8',
     'Cache-Control': p.status === 404 ? 'no-store' : 'public, max-age=60, s-maxage=300' } });
 }
@@ -53,6 +56,7 @@ const notFound = (o: string) => layout(o, { title: 'Halaman tidak ditemukan — 
 
 export async function pages(req: Request, env: Env, path: string): Promise<Response | null> {
   const origin = env.ALLOWED_ORIGIN || new URL(req.url).origin;
+  BEACON = env.CF_BEACON_TOKEN || '';
   if (req.method !== 'GET') return null;
 
   if (path === '/robots.txt')

@@ -7,7 +7,7 @@ const LBL = { title:'Judul', slug:'Slug (huruf kecil-dan-minus)', summary:'Ringk
   body:'Isi (mendukung Markdown)', category:'Kategori', technologies:'Teknologi (pisahkan dengan koma)', cover_key:'Gambar sampul', demo_url:'Tautan demo', featured:'Unggulan',
   excerpt:'Kutipan singkat', seo_title:'Judul SEO', seo_description:'Deskripsi SEO', status:'Status', client_name:'Nama klien', organization:'Organisasi', quote:'Isi testimoni',
   avatar_key:'Foto', name:'Nama', logo_key:'Logo', website_url:'Situs web', notes:'Catatan', website:'Situs web', industry:'Industri', position:'Jabatan', email:'Email',
-  whatsapp:'WhatsApp', organization_id:'Organisasi', contact_id:'Kontak', deal_id:'Peluang', value:'Nilai (Rp)', stage:'Tahap', source:'Sumber', expected_close:'Target closing',
+  whatsapp:'WhatsApp', projects:'Proyek selesai (contoh: 12+)', timeline:'Minggu hingga situs live (contoh: 4–6)', organization_id:'Organisasi', contact_id:'Kontak', deal_id:'Peluang', value:'Nilai (Rp)', stage:'Tahap', source:'Sumber', expected_close:'Target closing',
   kind:'Jenis', note:'Isi catatan', eyebrow:'Label atas', headline:'Judul utama', headline_dim:'Lanjutan judul', subheadline:'Sub-judul', cta_primary:'Tombol utama', cta_secondary:'Tombol kedua',
   baru:'Baru', dihubungi:'Dihubungi', discovery:'Penjajakan', proposal:'Proposal', negosiasi:'Negosiasi', menang:'Menang', kalah:'Kalah',
   new:'Baru', contacted:'Dihubungi', won:'Menang', lost:'Kalah', draft:'Draf', published:'Terbit', catatan:'Catatan', telepon:'Telepon', rapat:'Rapat',
@@ -43,11 +43,20 @@ async function api(path, o = {}) {
   const d = await r.json().catch(() => ({})); if (!r.ok) throw new Error(d.error || r.status); return d;
 }
 function logout() { sessionStorage.removeItem('t'); tok = ''; $('#app').style.display = 'none'; $('#login').style.display = 'grid'; }
+// Perlindungan brute-force login: Turnstile dikirim sebagai captcha_token ke Supabase Auth.
+// Aktifkan juga di Supabase → Authentication → Attack Protection → CAPTCHA (provider Turnstile, secret yang sama).
+const capKey = C.TURNSTILE_SITE_KEY && !/^GANTI/i.test(C.TURNSTILE_SITE_KEY) ? C.TURNSTILE_SITE_KEY : '', capBox = $('#cap');
+let capId;
+if (capKey) { const t = setInterval(() => { if (window.turnstile && !capId) { capId = window.turnstile.render(capBox, { sitekey: capKey, theme: 'dark' }); clearInterval(t); } }, 200); }
 $('#login').onsubmit = async e => {
   e.preventDefault(); $('#lerr').textContent = '';
+  const captcha = capKey ? window.turnstile?.getResponse(capId) : '';
+  if (capKey && !captcha) { $('#lerr').textContent = 'Selesaikan verifikasi keamanan dulu.'; return; }
   const r = await fetch(C.SUPABASE_URL + '/auth/v1/token?grant_type=password', { method:'POST',
-    headers:{ apikey:C.ANON_KEY, 'Content-Type':'application/json' }, body:JSON.stringify({ email:$('#em').value, password:$('#pw').value }) });
-  const d = await r.json(); if (!r.ok) { $('#lerr').textContent = 'Email atau password salah.'; return; }
+    headers:{ apikey:C.ANON_KEY, 'Content-Type':'application/json' },
+    body:JSON.stringify({ email:$('#em').value, password:$('#pw').value, ...(captcha ? { gotrue_meta_security:{ captcha_token:captcha } } : {}) }) });
+  const d = await r.json().catch(() => ({})); if (capKey) window.turnstile?.reset(capId);
+  if (!r.ok) { $('#lerr').textContent = r.status === 429 ? 'Terlalu banyak percobaan. Tunggu beberapa menit.' : 'Email atau password salah.'; return; }
   tok = d.access_token; sessionStorage.setItem('t', tok); $('#pw').value = ''; start();
 };
 function start() {
@@ -64,11 +73,11 @@ async function upload(file, alt) {
   const r = await fetch('/api/admin/media?alt=' + encodeURIComponent(alt || ''), { method:'POST', body:file, headers:{ Authorization:'Bearer ' + tok } });
   const d = await r.json(); if (!r.ok) throw new Error(d.error === 'type' ? 'Hanya PNG/JPG/WebP/GIF' : d.error === 'size' ? 'Maks 5 MB' : d.error); return d[0] || d;
 }
-const SET = { hero:[['eyebrow'],['headline'],['headline_dim'],['subheadline','textarea'],['cta_primary'],['cta_secondary']], contact:[['whatsapp'],['email']] };
+const SET = { hero:[['eyebrow'],['headline'],['headline_dim'],['subheadline','textarea'],['cta_primary'],['cta_secondary']], contact:[['whatsapp'],['email']], stats:[['projects'],['timeline']] };
 async function showSettings(m) {
   const rows = await api('settings'), v = Object.fromEntries(rows.map(r => [r.key, r.value]));
-  m.innerHTML = '<h1>Pengaturan</h1><p style="color:var(--dim)">Kosongkan kolom untuk memakai teks bawaan. WhatsApp: angka saja, contoh 628123456789.</p>' + Object.entries(SET).map(([k, fs]) =>
-    `<form data-k="${k}"><b>${k === 'hero' ? 'Hero' : 'Kontak'}</b>${fs.map(([n, ty]) => `<label>${L(n)}${ty === 'textarea' ? `<textarea name="${n}" rows="3">${esc(v[k]?.[n])}</textarea>` : `<input name="${n}" value="${esc(v[k]?.[n])}">`}</label>`).join('')}<div><button>Simpan</button></div><p class="err"></p></form>`).join('');
+  m.innerHTML = '<h1>Pengaturan</h1><p style="color:var(--dim)">Kosongkan kolom untuk memakai teks bawaan. WhatsApp: angka saja, contoh 628123456789 (kosong = tombol WhatsApp disembunyikan). Statistik hanya tampil bila diisi dengan data asli.</p>' + Object.entries(SET).map(([k, fs]) =>
+    `<form data-k="${k}"><b>${k === 'hero' ? 'Hero' : k === 'stats' ? 'Statistik landing (kosongkan = disembunyikan)' : 'Kontak'}</b>${fs.map(([n, ty]) => `<label>${L(n)}${ty === 'textarea' ? `<textarea name="${n}" rows="3">${esc(v[k]?.[n])}</textarea>` : `<input name="${n}" value="${esc(v[k]?.[n])}">`}</label>`).join('')}<div><button>Simpan</button></div><p class="err"></p></form>`).join('');
   m.querySelectorAll('form').forEach(f => f.onsubmit = async e => {
     e.preventDefault(); const o = {}; new FormData(f).forEach((x, n) => o[n] = x); const er = f.querySelector('.err');
     try { await api('settings/' + f.dataset.k, { method:'PUT', json:o }); er.style.color = '#7ee787'; er.textContent = 'Tersimpan. Tampil di situs dalam ±60 detik.'; }
@@ -112,7 +121,7 @@ async function showDash(m) {
   <section class="box"><h3>Layanan paling diminati</h3>${hbars(group(leads, l => l.service_interest, k => SVC[k] || k))}</section>
   <section class="box"><h3>Sumber peluang</h3>${hbars(group(deals, d => d.source))}</section>
   <section class="box" style="grid-column:1/-1"><h3>Aktivitas terbaru</h3>${logs.slice(0, 8).map(l => `<div class="row"><div>${esc(ACT[l.action] || l.action)} ${esc(T[l.entity]?.label || l.entity)}</div><small>${new Date(l.created_at).toLocaleString('id-ID', { day:'numeric', month:'short', hour:'2-digit', minute:'2-digit' })}</small></div>`).join('') || '<p class="dim">Belum ada aktivitas.</p>'}</section></div>
-  <p class="dim" style="margin-top:16px">Dihitung dari 200 data terbaru per tabel. Statistik pengunjung website: aktifkan Cloudflare Web Analytics di dashboard Cloudflare.</p>`;
+  <p class="dim" style="margin-top:16px">Dihitung dari 200 data terbaru per tabel. Statistik pengunjung website: buka Cloudflare → Analytics &amp; Logs → Web Analytics (token dipasang lewat CF_BEACON_TOKEN dan VITE_CF_BEACON_TOKEN).</p>`;
 }
 async function showPipeline(m) {
   const [ds, orgs, invs] = await Promise.all([api('deals'), api('organizations'), api('invoices')]);
