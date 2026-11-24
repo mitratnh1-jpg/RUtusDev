@@ -1,0 +1,22 @@
+<!doctype html><html lang="id"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<meta name="robots" content="noindex,nofollow"><title>RUtusdev Admin</title>
+<style>
+:root{--bg:#080B14;--panel:#10141f;--line:#232a3d;--txt:#e9ecf5;--dim:#8d94ab;--blue:#4355FF;--sky:#38BDF8}
+*{box-sizing:border-box;margin:0}body{font:15px/1.5 Inter,system-ui,sans-serif;background:var(--bg);color:var(--txt)}
+button,input,select,textarea{font:inherit;color:inherit}
+input,select,textarea{width:100%;background:#0b0f19;border:1px solid var(--line);border-radius:6px;padding:9px 11px}
+button{background:var(--blue);border:0;border-radius:6px;padding:8px 14px;cursor:pointer}button.g{background:#1b2133}button.d{background:#7a2330}
+#login{max-width:340px;margin:15vh auto;display:grid;gap:12px;padding:24px}h1{font:700 22px "Space Grotesk",sans-serif}
+#app{display:none;grid-template-columns:200px 1fr;min-height:100vh}
+nav{background:var(--panel);border-right:1px solid var(--line);padding:20px 12px;display:grid;gap:4px;align-content:start}
+nav button{background:none;text-align:left;color:var(--dim)}nav button.on{background:#1b2133;color:#fff}
+main{padding:28px;max-width:900px}.row{display:flex;gap:10px;align-items:center;justify-content:space-between;padding:12px 0;border-bottom:1px solid var(--line)}
+.row small{color:var(--dim);display:block}form{display:grid;gap:12px;background:var(--panel);padding:18px;border-radius:8px;margin:16px 0}
+label{display:grid;gap:4px;color:var(--dim);font-size:13px}label.c{display:flex;gap:8px;align-items:center}label.c input{width:auto}
+.err{color:#ff8a8a;min-height:1.4em}.grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(150px,1fr));gap:12px;margin-top:16px}
+.grid div{background:var(--panel);padding:8px;border-radius:6px;font-size:12px;word-break:break-all}.grid img{width:100%;height:100px;object-fit:cover;border-radius:4px}
+@media(max-width:700px){#app{grid-template-columns:1fr}nav{grid-auto-flow:column;overflow:auto}}
+</style></head><body>
+<form id="login"><h1>RUtusdev Admin</h1><input id="em" type="email" placeholder="Email" required autocomplete="username"><input id="pw" type="password" placeholder="Password" required autocomplete="current-password"><button>Masuk</button><p class="err" id="lerr"></p></form>
+<div id="app"><nav id="nav"></nav><main id="main"></main></div>
+<script src="config.js"></script><script src="admin.js"></script></body></html>

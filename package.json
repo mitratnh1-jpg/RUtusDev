@@ -1,0 +1,7 @@
+{
+  "name": "rutusdev",
+  "private": true,
+  "type": "module",
+  "scripts": { "dev": "wrangler dev", "deploy": "wrangler deploy" },
+  "devDependencies": { "wrangler": "^4", "typescript": "^5", "@cloudflare/workers-types": "^4" }
+}

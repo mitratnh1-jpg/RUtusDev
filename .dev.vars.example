@@ -1,0 +1,4 @@
+# Salin ke .dev.vars (JANGAN di-commit)
+SUPABASE_SERVICE_ROLE_KEY=
+# Kunci tes Turnstile (selalu lolos) untuk lokal:
+TURNSTILE_SECRET=1x0000000000000000000000000000000AA

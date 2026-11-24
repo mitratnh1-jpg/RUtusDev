@@ -7,17 +7,20 @@
 <meta name="description" content="RUtusdev membangun website, web application, dan solusi digital custom. Create. Build. Deploy.">
 <meta property="og:title" content="RUtusdev — Digital Development Studio">
 <meta property="og:description" content="Websites, web applications, and custom digital solutions.">
+<meta property="og:type" content="website">
+<script type="application/ld+json">{"@context":"https://schema.org","@type":"Organization","name":"RUtusdev","slogan":"Create. Build. Deploy.","description":"Digital development studio: website, web application, dan solusi digital custom."}</script>
 <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'><rect width='32' height='32' rx='8' fill='%234355FF'/><text x='16' y='23' font-size='20' text-anchor='middle' fill='white' font-family='sans-serif' font-weight='700'>R</text></svg>">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500&family=JetBrains+Mono:wght@400;500&family=Space+Grotesk:wght@300;400;500;700&display=swap" rel="stylesheet">
-<link rel="stylesheet" href="styles.css">
+<link rel="canonical" href="/">
+<link rel="stylesheet" href="/styles.css">
 </head>
 <body>
 <header class="nav" id="nav">
   <a class="logo" href="#top">RUtusdev<span>.</span></a>
   <nav class="nav-links" id="links">
-    <a href="#services">Services</a><a href="#work">Work</a><a href="#process">Process</a><a href="#packages">Packages</a><a href="#contact">Contact</a>
+    <a href="#services">Services</a><a href="#work">Work</a><a href="#process">Process</a><a href="#packages">Packages</a><a href="/articles">Articles</a><a href="#contact">Contact</a>
   </nav>
   <div class="nav-actions">
     <a class="btn btn-light" href="#contact">Start a project</a>
@@ -135,10 +138,12 @@
     </div>
     <form id="lead" novalidate>
       <label>Nama<input name="name" required maxlength="100" autocomplete="name"></label>
+      <label>WhatsApp (opsional)<input name="whatsapp" maxlength="20" inputmode="tel" autocomplete="tel"></label>
       <label>Email<input name="email" type="email" required maxlength="150" autocomplete="email"></label>
-      <label>Layanan<select name="service"><option>Website / landing page</option><option>Web application</option><option>Sistem informasi</option><option>Aplikasi custom</option></select></label>
+      <label>Layanan<select name="service"><option value="website">Website / landing page</option><option value="webapp">Web application</option><option value="system">Sistem informasi</option><option value="custom">Aplikasi custom</option></select></label>
       <label>Brief singkat<textarea name="brief" rows="4" maxlength="1500"></textarea></label>
-      <!-- Fase 1: tambahkan widget Cloudflare Turnstile di sini -->
+      <input class="hp" name="website" tabindex="-1" autocomplete="off" aria-hidden="true">
+      <div class="cf-turnstile" data-sitekey="GANTI_DENGAN_TURNSTILE_SITE_KEY" data-theme="dark"></div>
       <button class="btn btn-blue" type="submit">Send request</button>
       <p class="status" id="status" role="status"></p>
     </form>
@@ -147,6 +152,7 @@
 </main>
 
 <footer class="foot dark"><div class="wrap"><a class="logo" href="#top">RUtusdev<span>.</span></a><p>Create. Build. Deploy. · © <span id="yr"></span> RUtusdev</p></div></footer>
-<script src="script.js"></script>
+<script src="https://challenges.cloudflare.com/turnstile/v0/api.js" async defer></script>
+<script src="/script.js"></script>
 </body>
 </html>

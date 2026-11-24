@@ -88,3 +88,14 @@ input,select,textarea{font:16px var(--body);background:#10141f;color:#fff;border
  .nav-links.open{display:flex}.burger{display:block}.logos{font-size:17px}
 }
 @media(prefers-reduced-motion:reduce){.marquee div{animation:none}html{scroll-behavior:auto}}
+.hp{position:absolute;left:-9999px;width:1px;height:1px;opacity:0}
+.cover{width:100%;aspect-ratio:16/9;object-fit:cover;border-radius:4px}
+
+.doc{background:var(--ivory);min-height:100vh;padding:140px 0 96px}.doc .wrap{max-width:760px}
+.doc h1{font-size:clamp(34px,5vw,56px);margin:16px 0 12px}.doc .lead{color:var(--dim);opacity:1}
+.doc .meta{font:13px var(--mono);color:var(--dim);margin-bottom:24px}.doc .cover{margin:24px 0}
+.doc .prose p{margin:0 0 1.2em;max-width:68ch}.doc .chips{margin:20px 0}.doc .chips span{border-color:#c9c6bd;color:var(--ink)}
+.doc a:not(.btn):not(.item){color:var(--blue)}.doc .list{display:grid;gap:0;margin-top:32px}
+.doc .item{display:block;padding:24px 0;border-top:1px solid #d6d2c8}.doc .item h2{font-size:26px;max-width:none;margin:6px 0}
+.doc .item small{font:12px var(--mono);color:var(--dim)}.doc .item p{color:var(--dim)}.doc .item:hover h2{color:var(--blue)}
+.night h3 a:hover{color:var(--sky)}

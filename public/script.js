@@ -31,6 +31,22 @@ document.getElementById('lead').addEventListener('submit',async e=>{
   s.textContent='Mengirim…';
   try{
     const r=await fetch('/api/leads',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(Object.fromEntries(new FormData(f)))});
-    if(!r.ok)throw 0;s.textContent='Terkirim. Kami akan menghubungi Anda segera.';f.reset();
-  }catch{s.textContent='Endpoint /api/leads belum aktif (Fase 1 – Worker). Gunakan WhatsApp atau email.'}
+    if(r.status===429){s.textContent='Terlalu banyak percobaan. Tunggu sebentar.';return}
+    if(!r.ok)throw 0;s.textContent='Terkirim. Kami akan menghubungi Anda segera.';f.reset();window.turnstile&&turnstile.reset();
+  }catch{s.textContent='Gagal mengirim. Coba lagi, atau gunakan WhatsApp/email.';window.turnstile&&turnstile.reset()}
 });
+
+// Konten dinamis dari CMS (jika sudah ada data terbit)
+(async()=>{
+  const esc=s=>String(s??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+  const url=u=>/^https?:\/\//.test(u||'')?esc(u):'';
+  try{
+    const r=await fetch('/api/public/content');if(!r.ok)return;const d=await r.json();
+    if(d.services?.length)document.querySelector('#services .grid2').innerHTML=d.services.map(s=>
+      `<article class="card sand"><h3>${esc(s.title)}</h3><p>${esc(s.summary)}</p><p class="links"><a href="#contact">Request a quote &gt;</a></p></article>`).join('');
+    if(d.projects?.length)document.querySelector('#work .dgrid').innerHTML=d.projects.map(p=>
+      `<article class="card night">${p.cover_key?`<img class="cover" loading="lazy" src="/media/${esc(p.cover_key)}" alt="${esc(p.title)}">`:''}<h3>${/^[a-z0-9-]+$/.test(p.slug||'')?`<a href="/work/${p.slug}">${esc(p.title)}</a>`:esc(p.title)}</h3><p>${esc(p.summary)}</p>
+      <p class="meta">${esc([p.category,...(p.technologies||[])].filter(Boolean).join(' · '))}</p>${url(p.demo_url)?`<p class="links"><a href="${url(p.demo_url)}" rel="noopener" target="_blank">View demo &gt;</a></p>`:''}</article>`).join('');
+    if(d.testimonials?.length){const q=document.querySelectorAll('#trust .qcard');d.testimonials.slice(0,2).forEach((t,i)=>{if(q[i]){q[i].querySelector('blockquote').textContent='“'+t.quote+'”';q[i].querySelector('figcaption').textContent=[t.client_name,t.organization].filter(Boolean).join(', ')}})}
+  }catch{}
+})();
