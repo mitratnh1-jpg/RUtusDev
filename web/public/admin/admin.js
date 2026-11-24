@@ -4,7 +4,7 @@ const esc = s => String(s ?? '').replace(/[&<>"']/g, c => ({ '&':'&amp;','<':'&l
 const PUB = ['is_published','check'], SORT = ['sort_order','number'];
 const STAGES = ['baru','dihubungi','discovery','proposal','negosiasi','menang','kalah'];
 const LBL = { title:'Judul', slug:'Slug (huruf kecil-dan-minus)', summary:'Ringkasan', description:'Deskripsi', icon:'Ikon', sort_order:'Urutan', is_published:'Terbitkan',
-  body:'Isi (mendukung Markdown)', category:'Kategori', technologies:'Teknologi (pisahkan dengan koma)', cover_key:'Gambar sampul', demo_url:'Tautan demo', featured:'Unggulan',
+  body:'Isi (mendukung Markdown)', category_id:'Kategori', technology_ids:'Teknologi', gallery:'Galeri tambahan — satu baris per gambar: uploads/… | teks alternatif', cover_key:'Gambar sampul', demo_url:'Tautan demo', featured:'Unggulan',
   excerpt:'Kutipan singkat', seo_title:'Judul SEO', seo_description:'Deskripsi SEO', status:'Status', client_name:'Nama klien', organization:'Organisasi', quote:'Isi testimoni',
   avatar_key:'Foto', name:'Nama', logo_key:'Logo', website_url:'Situs web', notes:'Catatan', website:'Situs web', industry:'Industri', position:'Jabatan', email:'Email',
   whatsapp:'WhatsApp', projects:'Proyek selesai (contoh: 12+)', timeline:'Minggu hingga situs live (contoh: 4–6)', organization_id:'Organisasi', contact_id:'Kontak', deal_id:'Peluang', value:'Nilai (Rp)', stage:'Tahap', source:'Sumber', expected_close:'Target closing',
@@ -29,7 +29,9 @@ const T = {
   invoices: { label:'Faktur', title:'title', sub:['number','status','due_date'], print:'invoice', f:[['number'],['title'],['deal_id','ref','deals'],['organization_id','ref','organizations'],['status','select',['draf','terkirim','dibayar_sebagian','lunas','batal']],['issue_date','date'],['due_date','date'],['items','items'],['paid_amount','number'],['notes','textarea']] },
   tasks: { label:'Tugas', title:'title', sub:['milestone','status','priority','due_date'], f:[['title'],['deal_id','ref','deals'],['milestone'],['status','select',['todo','berjalan','selesai']],['priority','select',['rendah','sedang','tinggi']],['due_date','date'],['notes','textarea']] },
   services: { label:'Layanan', title:'title', f:[['title'],['slug'],['summary'],['description','textarea'],['icon'],SORT,PUB] },
-  projects: { label:'Portofolio', title:'title', f:[['title'],['slug'],['summary'],['body','textarea'],['category'],['technologies'],['cover_key','image'],['demo_url'],['featured','check'],PUB] },
+  projects: { label:'Portofolio', title:'title', f:[['title'],['slug'],['summary'],['body','textarea'],['category_id','ref','project_categories'],['technology_ids','multi','technologies'],['cover_key','image'],['gallery','gallery'],['demo_url'],['featured','check'],PUB] },
+  project_categories: { label:'Kategori proyek', title:'name', sub:['slug'], f:[['name'],['slug'],SORT] },
+  technologies: { label:'Teknologi', title:'name', sub:['slug'], f:[['name'],['slug']] },
   articles: { label:'Artikel', title:'title', f:[['title'],['slug'],['excerpt'],['body','textarea'],['seo_title'],['seo_description'],['cover_key','image'],['status','select',['draft','published']]] },
   testimonials: { label:'Testimoni', title:'client_name', f:[['client_name'],['organization'],['quote','textarea'],['avatar_key','image'],PUB] },
   clients: { label:'Klien', title:'name', f:[['name'],['logo_key','image'],['website_url'],PUB] },
@@ -143,7 +145,7 @@ async function showMedia(m) {
 }
 async function showList(m, t) {
   const rows = await api(cur), refs = {};
-  for (const [, ty, o] of t.f) if (ty === 'ref') refs[o] = await api(o);
+  for (const [, ty, o] of t.f) if ((ty === 'ref' || ty === 'multi') && !refs[o]) refs[o] = await api(o);
   m.innerHTML = `<h1>${t.label}</h1>${t.ro ? '' : '<button id="new">+ Tambah</button>'}<div id="form"></div>` + (rows.length ? rows.map(r =>
     `<div class="row"><div><b>${esc(r[t.title])}</b><small>${esc((t.sub || []).map(k => L(r[k])).filter(Boolean).join(' · ') || (r.is_published === false ? 'Draf' : L(r.status) || ''))}</small></div><div><button class="g" data-e="${r.id}">Edit</button></div></div>`).join('') : '<p>Belum ada data.</p>');
   const open = r => form(m.querySelector('#form'), t, r, refs);
@@ -157,15 +159,20 @@ function form(box, t, r, refs = {}) {
     if (type === 'textarea') return `<label>${L(k)}<textarea name="${k}" rows="5">${esc(v)}</textarea></label>`;
     if (type === 'items') return `<label>${L(k)}<textarea name="${k}" rows="6" placeholder="Pembuatan landing page | 1 | 3500000">${esc((r.items || []).map(x => `${x.desc} | ${x.qty} | ${x.price}`).join('\n'))}</textarea></label>`;
     if (type === 'ref') return `<label>${L(k)}<select name="${k}"><option value="">— tidak ada —</option>${(refs[opt] || []).map(x => `<option value="${x.id}" ${x.id === v ? 'selected' : ''}>${esc(x.name || x.title)}</option>`).join('')}</select></label>`;
+    if (type === 'multi') { const sel = r[k] || []; return `<fieldset data-multi="${k}"><legend>${L(k)}</legend>${(refs[opt] || []).map(x => `<label class="c"><input type="checkbox" value="${x.id}" ${sel.includes(x.id) ? 'checked' : ''}>${esc(x.name)}</label>`).join('') || '<small>Belum ada. Tambahkan di tab Teknologi.</small>'}</fieldset>`; }
+    if (type === 'gallery') return `<label>${L(k)}<textarea name="${k}" rows="4" placeholder="uploads/… | teks alternatif">${esc((r.gallery || []).map(g => g.alt_text ? `${g.object_key} | ${g.alt_text}` : g.object_key).join('\n'))}</textarea><input type="file" data-gal="${k}" accept="image/*" multiple></label>`;
     if (type === 'select') return `<label>${L(k)}<select name="${k}">${opt.map(o => `<option value="${o}" ${o === v ? 'selected' : ''}>${L(o)}</option>`).join('')}</select></label>`;
     if (type === 'image') return `<label>${L(k)}<input name="${k}" value="${esc(v)}" placeholder="uploads/…"><input type="file" data-up="${k}" accept="image/*"></label>`;
     return `<label>${L(k)}<input name="${k}" type="${type}" value="${esc(v)}"></label>`;
   }).join('')}<div><button>Simpan</button> ${r.id && !t.ro ? '<button type="button" class="d" id="del">Hapus</button>' : ''} ${t.print && r.id ? '<button type="button" class="g" id="prn">Cetak / PDF</button>' : ''} ${cur === 'leads' && r.id ? '<button type="button" class="g" id="conv">Jadikan peluang</button>' : ''}</div><p class="err"></p></form>`;
   const f = box.querySelector('form'), err = f.querySelector('.err');
-  f.onchange = async e => { const k = e.target.dataset.up; if (!k) return; try { f[k].value = (await upload(e.target.files[0])).object_key; } catch (x) { err.textContent = x.message; } };
+  f.onchange = async e => {
+    const g = e.target.dataset.gal;
+    if (g) { try { for (const file of e.target.files) { const o = await upload(file); f[g].value = (f[g].value.trim() ? f[g].value.trim() + '\n' : '') + o.object_key; } e.target.value = ''; } catch (x) { err.textContent = x.message; } return; }
+    const k = e.target.dataset.up; if (!k) return; try { f[k].value = (await upload(e.target.files[0])).object_key; } catch (x) { err.textContent = x.message; } };
   f.onsubmit = async e => {
     e.preventDefault(); const o = {};
-    for (const [k, type] of t.f) o[k] = type === 'items' ? parseItems(f[k].value) : type === 'check' ? f[k].checked : type === 'number' ? Number(f[k].value) || 0 : f[k].value;
+    for (const [k, type] of t.f) o[k] = type === 'multi' ? [...f.querySelectorAll(`fieldset[data-multi="${k}"] input:checked`)].map(i => i.value) : type === 'gallery' ? f[k].value.split('\n').map(l => l.split('|').map(x => x.trim())).filter(a => a[0]).map(a => ({ object_key:a[0], alt_text:a[1] || '' })) : type === 'items' ? parseItems(f[k].value) : type === 'check' ? f[k].checked : type === 'number' ? Number(f[k].value) || 0 : f[k].value;
     try { await api(r.id ? `${cur}/${r.id}` : cur, { method:r.id ? 'PATCH' : 'POST', json:o }); show(); } catch (x) { err.textContent = x.message; }
   };
   const pr = f.querySelector('#prn'); if (pr) pr.onclick = () => window.open(`cetak.html?t=${t.print}&id=${r.id}`, '_blank');

@@ -80,3 +80,10 @@ Statistik pengunjung: aktifkan **Cloudflare Web Analytics** (tanpa cookie) di da
 - `npm run typecheck` untuk cek tipe, `npm run build` menghasilkan `web/dist`, `npm run deploy` build + deploy Worker.
 - `web/public/styles.css` dipakai bersama oleh landing page dan halaman artikel/proyek yang dirender Worker.
 - Catatan SEO: landing page dirender di browser; meta tag & JSON-LD statis di `web/index.html`. Artikel & studi kasus tetap dirender server.
+
+## Portofolio ternormalisasi
+Skema mengikuti rancangan: `project_categories` (kategori, 1 per proyek lewat `projects.category_id`), `technologies` + `project_technologies`
+(banyak-ke-banyak, berurutan), dan `project_media` (galeri tambahan; `cover_key` tetap menjadi sampul). Jalankan ulang bagian
+"Portofolio ternormalisasi" di `supabase/schema.sql`: tabel dibuat dan data lama (`category`, `technologies`) disalin otomatis.
+Kelola di admin: **Kategori proyek**, **Teknologi**, lalu pilih di form **Portofolio** (galeri: satu gambar per baris). Kolom lama tidak
+dibaca lagi; hapus setelah backfill diperiksa (perintah ada di akhir schema.sql). Halaman `/work/:slug` menampilkan galeri.

@@ -116,3 +116,51 @@ create table if not exists public.tasks (
 alter table public.proposals enable row level security;
 alter table public.invoices enable row level security;
 alter table public.tasks enable row level security;
+
+-- ===== Portofolio ternormalisasi (kategori, teknologi, galeri) =====
+-- Aman dijalankan ulang. Kolom lama projects.category (teks) & projects.technologies (text[]) dipertahankan
+-- sebagai data warisan: dipakai hanya untuk backfill di bawah dan tidak dibaca lagi oleh Worker.
+create table if not exists public.project_categories (
+  id uuid primary key default gen_random_uuid(), name text not null unique, slug text not null unique,
+  sort_order int default 0, created_at timestamptz default now());
+create table if not exists public.technologies (
+  id uuid primary key default gen_random_uuid(), name text not null unique, slug text not null unique,
+  created_at timestamptz default now());
+alter table public.projects add column if not exists category_id uuid references public.project_categories(id) on delete set null;
+create table if not exists public.project_technologies (
+  project_id uuid not null references public.projects(id) on delete cascade,
+  technology_id uuid not null references public.technologies(id) on delete cascade,
+  sort_order int default 0, primary key (project_id, technology_id));
+create table if not exists public.project_media (
+  id uuid primary key default gen_random_uuid(),
+  project_id uuid not null references public.projects(id) on delete cascade,
+  object_key text not null, alt_text text, sort_order int default 0, created_at timestamptz default now());
+create index if not exists projects_category_idx on public.projects (category_id);
+create index if not exists project_tech_tech_idx on public.project_technologies (technology_id);
+create index if not exists project_media_project_idx on public.project_media (project_id, sort_order);
+alter table public.project_categories enable row level security;
+alter table public.technologies enable row level security;
+alter table public.project_technologies enable row level security;
+alter table public.project_media enable row level security;
+
+-- Backfill dari data lama (idempotent)
+insert into public.project_categories (name, slug)
+  select distinct on (lower(trim(category))) trim(category),
+    coalesce(nullif(trim(both '-' from regexp_replace(lower(trim(category)), '[^a-z0-9]+', '-', 'g')), ''), 'kategori-' || substr(md5(trim(category)), 1, 6))
+  from public.projects where nullif(trim(category), '') is not null
+  on conflict do nothing;
+update public.projects p set category_id = c.id
+  from public.project_categories c
+  where p.category_id is null and nullif(trim(p.category), '') is not null and lower(c.name) = lower(trim(p.category));
+insert into public.technologies (name, slug)
+  select distinct on (lower(trim(t))) trim(t),
+    coalesce(nullif(trim(both '-' from regexp_replace(lower(trim(t)), '[^a-z0-9]+', '-', 'g')), ''), 'tek-' || substr(md5(trim(t)), 1, 6))
+  from public.projects, unnest(technologies) as t where nullif(trim(t), '') is not null
+  on conflict do nothing;
+insert into public.project_technologies (project_id, technology_id, sort_order)
+  select p.id, tc.id, (x.ord - 1)::int
+  from public.projects p, unnest(p.technologies) with ordinality as x(t, ord)
+  join public.technologies tc on lower(tc.name) = lower(trim(x.t))
+  on conflict do nothing;
+-- Setelah memastikan hasil backfill benar, kolom lama boleh dihapus:
+-- alter table public.projects drop column category, drop column technologies;

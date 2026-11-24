@@ -1,6 +1,8 @@
 // Halaman publik yang dirender server (SEO): /articles, /articles/:slug, /work/:slug, /sitemap.xml, /robots.txt
 import type { Env } from './index';
+import { PROJECT_COLS, PROJECT_EMBED, shapeProject } from './projects';
 
+const MEDIA_KEY = /^uploads\/[0-9a-f-]{36}\.(png|jpg|webp|gif)$/;
 const SLUG = /^[a-z0-9-]{1,100}$/;
 const esc = (s: unknown) => String(s ?? '').replace(/[&<>"']/g, c => ({ '&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;' }[c]!));
 const inline = (t: string) => t.replace(/`([^`]+)`/g, '<code>$1</code>').replace(/\*\*([^*]+)\*\*/g, '<strong>$1</strong>')
@@ -100,15 +102,17 @@ export async function pages(req: Request, env: Env, path: string): Promise<Respo
         body: `<p><a href="/articles">← Artikel</a></p><h1>${esc(a.title)}</h1><p class="meta">${esc((a.created_at || '').slice(0, 10))}</p>${
           a.cover_key ? `<img class="cover" src="/media/${esc(a.cover_key)}" alt="${esc(a.title)}">` : ''}<div class="prose">${paras(a.body)}</div>` });
     }
-    const [p] = await get(env, `projects?slug=eq.${slug}&is_published=eq.true&select=*&limit=1`);
-    if (!p) return notFound(origin);
-    const tech = (p.technologies || []) as string[], demo = safeUrl(p.demo_url);
+    const [raw] = await get(env, `projects?slug=eq.${slug}&is_published=eq.true&select=${PROJECT_COLS},${PROJECT_EMBED}&limit=1`);
+    if (!raw) return notFound(origin);
+    const p = shapeProject(raw), tech = p.technologies, demo = safeUrl(p.demo_url);
+    const gal = p.gallery.filter(g => MEDIA_KEY.test(g.object_key));
     return layout(origin, { title: `${p.title} — Studi kasus | RUtusdev`, desc: p.summary || p.title, path, og: p.cover_key,
       ld: { '@context': 'https://schema.org', '@type': 'CreativeWork', name: p.title, description: p.summary, creator: { '@type': 'Organization', name: 'RUtusdev' },
         datePublished: p.created_at, ...(demo ? { url: demo } : {}), ...(p.cover_key ? { image: `${origin}/media/${p.cover_key}` } : {}) },
       body: `<p><a href="/#work">← Karya pilihan</a></p><h1>${esc(p.title)}</h1><p class="lead">${esc(p.summary)}</p>${
         p.cover_key ? `<img class="cover" src="/media/${esc(p.cover_key)}" alt="${esc(p.title)}">` : ''}<p class="chips">${
         [p.category, ...tech].filter(Boolean).map(t => `<span>${esc(t)}</span>`).join('')}</p><div class="prose">${paras(p.body)}</div>${
+        gal.length ? `<div class="gallery">${gal.map(g => `<img loading="lazy" src="/media/${esc(g.object_key)}" alt="${esc(g.alt_text || p.title)}">`).join('')}</div>` : ''}${
         demo ? `<p><a class="btn btn-blue" href="${demo}" target="_blank" rel="noopener">Lihat demo langsung</a></p>` : ''}` });
   }
   return null;

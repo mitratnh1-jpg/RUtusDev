@@ -675,3 +675,5 @@ button:focus-visible, a:focus-visible {
 .cl-grid img{max-width:100%;max-height:100%;object-fit:contain;filter:grayscale(1);opacity:.7;transition:filter .2s,opacity .2s}
 .cl-grid li:hover img,.cl-grid a:focus-visible img{filter:none;opacity:1}
 .doc .cta{margin-top:32px}
+
+.gallery{display:grid;grid-template-columns:repeat(auto-fill,minmax(220px,1fr));gap:12px;margin:24px 0}.gallery img{width:100%;aspect-ratio:4/3;object-fit:cover;border-radius:8px}

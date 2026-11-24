@@ -1,4 +1,5 @@
 import { pages } from './pages';
+import { PROJECT_EMBED, PROJECT_LIST_COLS, shapeProject } from './projects';
 
 export interface Env {
   ASSETS: Fetcher; MEDIA: R2Bucket;
@@ -12,7 +13,9 @@ export interface Env {
 type Cfg = { cols: string[]; order: string; create?: boolean; del?: boolean };
 const TABLES: Record<string, Cfg> = {
   services: { cols: ['title','slug','summary','description','icon','sort_order','is_published'], order: 'sort_order.asc' },
-  projects: { cols: ['title','slug','summary','body','category','technologies','cover_key','demo_url','featured','is_published'], order: 'created_at.desc' },
+  projects: { cols: ['title','slug','summary','body','category_id','cover_key','demo_url','featured','is_published'], order: 'created_at.desc' },
+  project_categories: { cols: ['name','slug','sort_order'], order: 'sort_order.asc' },
+  technologies: { cols: ['name','slug'], order: 'name.asc' },
   articles: { cols: ['title','slug','excerpt','body','seo_title','seo_description','cover_key','status'], order: 'created_at.desc' },
   testimonials: { cols: ['client_name','organization','quote','avatar_key','is_published'], order: 'created_at.desc' },
   clients: { cols: ['name','logo_key','website_url','is_published'], order: 'created_at.desc' },
@@ -108,11 +111,31 @@ function pick(cfg: Cfg, body: Record<string, unknown>) {
       v = a.map((x: any) => ({ desc: clean(x?.desc, 200), qty: Math.max(0, Math.min(1e6, Number(x?.qty) || 0)), price: Math.max(0, Math.min(1e12, Number(x?.price) || 0)) })).filter(x => x.desc);
     }
     if (c === 'value' || c === 'paid_amount') v = Math.max(0, Math.min(1e13, Number(v) || 0));
-    if (c === 'technologies' && typeof v === 'string') v = v.split(',').map(s => s.trim()).filter(Boolean).slice(0, 20);
     if (typeof v === 'string') v = v.slice(0, c === 'body' || c === 'description' ? 20000 : 2000);
     o[c] = v === '' ? null : v;
   }
   return o;
+}
+
+const slugify = (t: string) => t.toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/^-+|-+$/g, '').slice(0, 100);
+const MEDIA_KEY = /^uploads\/[0-9a-f-]{36}\.(png|jpg|webp|gif)$/;
+// Sinkronkan relasi proyek (teknologi & galeri). Hanya yang dikirim di body yang diubah.
+async function syncProject(env: Env, projectId: string, body: Record<string, unknown>): Promise<string | null> {
+  if (Array.isArray(body.technology_ids)) {
+    const ids = [...new Set((body.technology_ids as unknown[]).filter((x): x is string => typeof x === 'string' && UUID.test(x)))].slice(0, 30);
+    let r = await sb(env, `project_technologies?project_id=eq.${projectId}`, { method: 'DELETE' });
+    if (ids.length && r.ok) r = await sb(env, 'project_technologies', { method: 'POST', headers: { Prefer: 'return=minimal' },
+      body: JSON.stringify(ids.map((technology_id, i) => ({ project_id: projectId, technology_id, sort_order: i }))) });
+    if (!r.ok) return 'technologies';
+  }
+  if (Array.isArray(body.gallery)) {
+    const rows = (body.gallery as any[]).filter(g => MEDIA_KEY.test(String(g?.object_key ?? ''))).slice(0, 20)
+      .map((g, i) => ({ project_id: projectId, object_key: g.object_key, alt_text: clean(g.alt_text, 200) || null, sort_order: i }));
+    let r = await sb(env, `project_media?project_id=eq.${projectId}`, { method: 'DELETE' });
+    if (rows.length && r.ok) r = await sb(env, 'project_media', { method: 'POST', headers: { Prefer: 'return=minimal' }, body: JSON.stringify(rows) });
+    if (!r.ok) return 'gallery';
+  }
+  return null;
 }
 
 async function admin(req: Request, env: Env, parts: string[]): Promise<Response> {
@@ -186,6 +209,13 @@ async function admin(req: Request, env: Env, parts: string[]): Promise<Response>
   }
   const cfg = TABLES[table];
   if (!cfg) return json({ error: 'not_found' }, 404);
+  if (req.method === 'GET' && table === 'projects') {
+    const r = await sb(env, `projects?select=*,project_technologies(technology_id,sort_order),project_media(object_key,alt_text,sort_order)&order=${cfg.order}&limit=200`);
+    if (!r.ok) return json({ error: 'db', detail: 'Jalankan ulang bagian "Portofolio ternormalisasi" di supabase/schema.sql' }, 500);
+    return json(((await r.json()) as any[]).map(({ project_technologies, project_media, ...p }) => ({ ...p,
+      technology_ids: [...project_technologies].sort((a: any, b: any) => (a.sort_order ?? 0) - (b.sort_order ?? 0)).map((x: any) => x.technology_id),
+      gallery: [...project_media].sort((a: any, b: any) => (a.sort_order ?? 0) - (b.sort_order ?? 0)).map((g: any) => ({ object_key: g.object_key, alt_text: g.alt_text || '' })) })));
+  }
   if (req.method === 'GET') return json(await sb(env, `${table}?select=*&order=${cfg.order}&limit=200`).then(r => r.json()));
   if (req.method === 'DELETE') {
     if (cfg.del === false || !id) return json({ error: 'method' }, 405);
@@ -205,12 +235,20 @@ async function admin(req: Request, env: Env, parts: string[]): Promise<Response>
     if (req.method === 'POST' && (table === 'proposals' || table === 'invoices') && !data.number) {
       const d = new Date(); data.number = `${table === 'invoices' ? 'INV' : 'PNW'}-${d.getFullYear()}${String(d.getMonth() + 1).padStart(2, '0')}-${String(Math.floor(1000 + Math.random() * 9000))}`;
     }
+    if (req.method === 'POST' && (table === 'project_categories' || table === 'technologies') && !data.slug && typeof data.name === 'string')
+      data.slug = slugify(data.name) || `${table === 'technologies' ? 'tek' : 'kategori'}-${Date.now().toString(36)}`;
     if (typeof data.slug === 'string' && !/^[a-z0-9-]{1,100}$/.test(data.slug)) return json({ error: 'slug', detail: 'Slug: huruf kecil, angka, tanda minus' }, 400);
     const r = await sb(env, req.method === 'POST' ? table : `${table}?id=eq.${id}`, {
       method: req.method, headers: { Prefer: 'return=representation' }, body: JSON.stringify(data) });
     if (!r.ok) return json({ error: 'db', detail: (await r.text()).slice(0, 200) }, 400);
+    const saved = (await r.json()) as any[];
+    if (table === 'projects') {
+      const pid = req.method === 'POST' ? saved[0]?.id : id;
+      const bad = pid && UUID.test(pid) ? await syncProject(env, pid, body) : null;
+      if (bad) return json({ error: 'db', detail: `Proyek tersimpan, tetapi ${bad} gagal disimpan. Coba simpan ulang.` }, 400);
+    }
     await log(env, me.id, req.method === 'POST' ? 'create' : 'update', table, id);
-    return json(await r.json(), req.method === 'POST' ? 201 : 200);
+    return json(saved, req.method === 'POST' ? 201 : 200);
   }
   return json({ error: 'method' }, 405);
 }
@@ -222,7 +260,8 @@ async function publicContent(req: Request, env: Env, ctx: ExecutionContext): Pro
   const q = (t: string, extra = '') => sb(env, `${t}?is_published=eq.true${extra}`).then(r => r.json());
   const [services, projects, testimonials, clients, articles, st] = await Promise.all([
     q('services', '&select=title,slug,summary,icon&order=sort_order.asc'),
-    q('projects', '&select=title,slug,summary,category,technologies,cover_key,demo_url,featured&order=created_at.desc&limit=12'),
+    q('projects', `&select=${PROJECT_LIST_COLS},${PROJECT_EMBED}&order=created_at.desc&limit=12`)
+      .then(p => (Array.isArray(p) ? p.map(shapeProject) : [])),
     q('testimonials', '&select=client_name,organization,quote&order=created_at.desc&limit=6'),
     q('clients', '&select=name,logo_key,website_url'),
     sb(env, 'articles?status=eq.published&select=title,slug,excerpt,cover_key,created_at&order=created_at.desc&limit=6').then(r => (r.ok ? r.json() : [])),
