@@ -1,6 +1,7 @@
 import { useEffect, useRef, useState } from 'react';
 import Dots from './Dots';
 import Contact from './Contact';
+import Deck from './Deck';
 import { useContent } from './useContent';
 import type { Article, Project, Testimonial } from './types';
 
@@ -90,21 +91,13 @@ function Services({ items }: { items: { title: string; summary?: string }[] }) {
               <p className="links"><a href="#contact">Minta penawaran <i>→</i></a></p></article>
           )) : (<>
             <article className="cell">
-              <div className="mock stack" aria-hidden="true">
-                <div className="win w3"><b /><b /><b /><em>Landing page</em></div>
-                <div className="win w2"><b /><b /><b /><em>Aplikasi</em></div>
-                <div className="win w1"><b /><b /><b /><em>Website</em><div className="code" /></div>
-              </div>
+              <Deck variant="web" />
               <h3>Website &amp; landing page</h3>
               <p>Company profile dan landing page cepat, responsif, dan siap SEO dengan CMS yang bisa Anda kelola sendiri.</p>
               <p className="links"><a href="#packages">Lihat paket <i>→</i></a><a href="#contact">Minta penawaran <i>→</i></a></p>
             </article>
             <article className="cell">
-              <div className="mock mods" aria-hidden="true">
-                <div className="mod m3"><small>Modul</small><div><span className="sq" /><span className="ln" /></div></div>
-                <div className="mod m2"><small>Modul</small><div><span className="sq" /><span className="ln" /></div></div>
-                <div className="mod m1"><small>Modul</small><div><span className="sq b" /><div><strong>CRM</strong><span className="ln" /></div></div></div>
-              </div>
+              <Deck variant="app" />
               <h3>Aplikasi web &amp; sistem informasi</h3>
               <p>Dashboard, sistem informasi, dan aplikasi custom yang mengikuti alur kerja bisnis Anda, bukan sebaliknya.</p>
               <p className="links"><a href="#contact">Diskusikan ide Anda <i>→</i></a></p>

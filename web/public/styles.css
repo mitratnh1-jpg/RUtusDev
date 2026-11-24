@@ -570,3 +570,40 @@ button:focus-visible, a:focus-visible {
   }
   .spark polyline { stroke-dasharray: none; stroke-dashoffset: 0; }
 }
+
+/* =========================================================
+   Tumpukan kartu interaktif (Deck) + huruf kode bergerak
+   ========================================================= */
+.deck{--p:0;--gap:calc(8px + var(--p) * 20px);position:relative;height:270px;margin-bottom:8px;touch-action:pan-y;-webkit-user-select:none;user-select:none}
+.dk{position:absolute;left:0;right:0;bottom:6px;height:206px;background:#fbfaf9;border:1px solid #d9d4cd;border-radius:10px;overflow:hidden;
+ box-shadow:0 10px 28px rgba(20,18,15,.07);transform-origin:50% 100%;
+ transform:translate3d(0,calc(var(--d) * var(--gap) * -1),0) scale(calc(1 - var(--d) * .05));
+ opacity:calc(1 - var(--d) * .2);
+ transition:transform .6s var(--ease-out,cubic-bezier(.16,1,.3,1)),opacity .35s ease,box-shadow .3s ease;will-change:transform}
+.dk:not(.front){cursor:pointer}
+.dk.front{cursor:grab;box-shadow:0 18px 40px rgba(20,18,15,.12)}
+.dk.front:hover{box-shadow:0 22px 48px rgba(20,18,15,.16)}
+.dk.drag{transition:none;cursor:grabbing}
+.dk:focus-visible{outline:2px solid var(--blue);outline-offset:3px}
+.deck .bar{display:flex;align-items:center;gap:5px;padding:11px 12px;font:11px var(--mono);color:#77726c;border-bottom:1px solid #ece8e2;background:#fbfaf9;position:relative;z-index:1}
+.deck .bar b{width:7px;height:7px;border-radius:50%;background:#d6d1ca}
+.deck .bar em{font-style:normal;margin:0 auto;transform:translateX(-14px)}
+.deck .body{position:absolute;inset:38px 0 0}
+.rain{position:absolute;inset:0;width:100%;height:100%;display:block;-webkit-mask-image:linear-gradient(#000 70%,transparent);mask-image:linear-gradient(#000 70%,transparent)}
+.bar2{padding:12px 14px;font:10px var(--mono);letter-spacing:.06em;color:#8a857e;text-transform:uppercase}
+.mbody{display:flex;align-items:center;gap:14px;padding:6px 14px 0}
+.mbody .sq{width:50px;height:50px;border-radius:9px;background:#e4dfd8;flex:none}.mbody .sq.b{background:var(--blue)}
+.mbody strong{display:block;font:500 18px var(--head);letter-spacing:-.01em;margin-bottom:7px}
+.mbody .ln{display:block;height:7px;width:90px;background:#e8e4de;border-radius:3px}
+.typer{display:block;font:12px var(--mono);color:var(--blue);min-height:16px;white-space:nowrap}
+.typer u{display:inline-block;width:6px;height:12px;background:var(--blue);margin-left:2px;vertical-align:-2px;animation:caret 1s steps(2) infinite}
+@keyframes caret{50%{opacity:0}}
+.bars{display:flex;align-items:flex-end;gap:8px;height:70px;padding:0 14px;margin-top:22px}
+.bars i{flex:1;background:linear-gradient(#cfd4ff,#e9ebff);border-radius:4px 4px 0 0;animation:grow 2.6s ease-in-out infinite}
+.bars i:nth-child(1){height:40%}.bars i:nth-child(2){height:65%;animation-delay:-.4s}.bars i:nth-child(3){height:50%;animation-delay:-.8s}
+.bars i:nth-child(4){height:85%;animation-delay:-1.2s}.bars i:nth-child(5){height:60%;animation-delay:-1.6s}
+@keyframes grow{50%{transform:scaleY(.62);transform-origin:bottom}}
+.hint{position:absolute;left:0;right:0;bottom:-14px;text-align:center;font:500 10px var(--mono);letter-spacing:.1em;text-transform:uppercase;color:#a29c94;max-width:none!important;transition:opacity .4s}
+.hint.gone{opacity:0}
+.cell:has(.deck){overflow:hidden}
+@media (prefers-reduced-motion:reduce){.dk{transition:none}.bars i,.typer u{animation:none}}
