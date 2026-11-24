@@ -1,6 +1,7 @@
 import { StrictMode } from 'react';
 import { createRoot } from 'react-dom/client';
 import App from './App';
+import './tailwind.css';
 
 // Cloudflare Web Analytics (tanpa cookie). Aktif hanya bila VITE_CF_BEACON_TOKEN diisi (32 karakter hex).
 const beacon = import.meta.env.VITE_CF_BEACON_TOKEN as string | undefined;

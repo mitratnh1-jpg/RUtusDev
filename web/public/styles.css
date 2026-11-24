@@ -1,5 +1,5 @@
-:root{--black:#0a0a0b;--panel:#141416;--bg:#fcfbfa;--sand:#f4f1ee;--line:#e5e0da;--blue:#4355ff;--ink:#0d0d0e;--dim:#6f6b66;--orange:#ff6a3d;
---head:"Hanken Grotesk",system-ui,sans-serif;--body:"Hanken Grotesk",system-ui,sans-serif;--mono:"JetBrains Mono",ui-monospace,monospace}
+:root{--black:#080B14;--panel:#10141F;--sky:#38BDF8;--bg:#fcfbfa;--sand:#f4f1ee;--line:#e5e0da;--blue:#0369A1;--ink:#0d0d0e;--dim:#6f6b66;--orange:#ff6a3d;
+--head:"Space Grotesk",system-ui,sans-serif;--body:"Inter",system-ui,sans-serif;--mono:"JetBrains Mono",ui-monospace,monospace}
 *{box-sizing:border-box;margin:0}
 html{scroll-behavior:smooth;scroll-padding-top:84px}
 body{font:400 17px/1.55 var(--body);background:var(--bg);color:var(--ink);-webkit-font-smoothing:antialiased;overflow-x:hidden}
@@ -22,14 +22,14 @@ h3{font-size:24px;margin:28px 0 10px}
 .nav{position:fixed;inset:12px 12px auto;z-index:30;display:flex;align-items:center;justify-content:space-between;gap:12px;height:58px;padding:0 10px 0 16px;border-radius:12px;max-width:1216px;margin:0 auto;
  background:rgba(255,255,255,.86);border:1px solid var(--line);color:var(--ink);backdrop-filter:blur(16px);-webkit-backdrop-filter:blur(16px);box-shadow:0 6px 24px rgba(0,0,0,.05);transition:background .25s,color .25s,border-color .25s}
 .nav-dark{background:rgba(24,24,27,.72);border-color:rgba(255,255,255,.1);color:#fff;box-shadow:none}
-.nav-blue{background:rgba(110,125,255,.55);border-color:rgba(255,255,255,.25);color:#fff;box-shadow:none}
+.nav-blue{background:rgba(2,132,199,.55);border-color:rgba(255,255,255,.25);color:#fff;box-shadow:none}
 .logo{display:inline-flex;align-items:center;gap:8px;font:700 22px var(--head);letter-spacing:-.04em}
 .mark{width:26px;height:26px;fill:currentColor}.logo .mark{fill:var(--blue)}.nav-dark .logo .mark,.nav-blue .logo .mark,.foot .logo .mark{fill:#fff}
 .nav-links{display:flex;gap:26px;font-size:15px}.nav-links a{opacity:.72}.nav-links a:hover{opacity:1}
 .nav-actions{display:flex;align-items:center;gap:8px}
 .btn{display:inline-flex;align-items:center;justify-content:center;font:500 15px/1 var(--body);padding:13px 20px;border-radius:7px;border:1px solid transparent;cursor:pointer;white-space:nowrap;transition:transform .15s,background .15s}
 .btn:hover{transform:translateY(-1px)}
-.btn-blue{background:var(--blue);color:#fff}.btn-blue:hover{background:#5667ff}
+.btn-blue{background:var(--blue);color:#fff}.btn-blue:hover{background:#0284C7}
 .btn-ghost{border-color:color-mix(in srgb,currentColor 38%,transparent);color:inherit;background:transparent}
 .nav .btn{padding:10px 14px;font-size:14px}
 .burger{display:none;background:none;border:0;width:38px;height:38px;cursor:pointer;color:inherit;flex-direction:column;justify-content:center;gap:5px;padding:0 9px}
@@ -73,9 +73,9 @@ h3{font-size:24px;margin:28px 0 10px}
 .dcard{scroll-snap-align:start;background:var(--black);color:#fff;border-radius:18px;padding:24px;min-height:420px;display:flex;flex-direction:column;
  background-image:radial-gradient(rgba(255,255,255,.14) 1px,transparent 1.4px);background-size:16px 16px;border:1px solid #1d1d21}
 .dhead{display:flex;justify-content:space-between;align-items:flex-start;gap:12px}
-.dcard h3{margin:0;font-size:28px}.dcard h3 a:hover{color:#8f9cff}
+.dcard h3{margin:0;font-size:28px}.dcard h3 a:hover{color:#38BDF8}
 .dcard p{color:#a8a8b2;margin-top:14px;max-width:40ch}.dcard p.meta{font:400 12px var(--mono);color:#85858f}
-.dcard .links a:last-child{color:#8f9cff}
+.dcard .links a:last-child{color:#38BDF8}
 .pillbtn{font:500 12px/1 var(--body);padding:8px 11px;border:1px solid #3a3a42;border-radius:6px;white-space:nowrap;color:#fff}.pillbtn i{font-style:normal;margin-left:4px}
 .pillbtn.light{color:var(--ink);border-color:#cfc9c1;background:#fff;padding:10px 14px;font-size:13px}
 .nest{position:relative;margin-top:36px;flex:1;min-height:250px}
@@ -123,10 +123,10 @@ h3{font-size:24px;margin:28px 0 10px}
 .term{display:flex;align-items:center;gap:12px;background:#121214;border:1px solid #2a2a30;border-radius:6px;padding:9px 10px 9px 14px;width:fit-content;max-width:100%;font:13px var(--mono)}
 .term u{text-decoration:none;color:#7a7a85;margin-right:6px}
 .term button{background:#222227;color:#fff;border:0;border-radius:4px;padding:6px 10px;font:11px var(--mono);cursor:pointer}
-.mlink{font:500 11.5px var(--mono);letter-spacing:.06em;color:#fff}.mlink i{font-style:normal;color:#8f9cff}
+.mlink{font:500 11.5px var(--mono);letter-spacing:.06em;color:#fff}.mlink i{font-style:normal;color:#38BDF8}
 .steps{list-style:none;padding:0;display:grid;grid-template-columns:repeat(4,1fr);gap:16px;margin-top:72px;counter-reset:s}
 .steps li{border-top:1px solid #2a2a30;padding-top:20px;counter-increment:s}
-.steps li::before{content:counter(s,decimal-leading-zero);font:12px var(--mono);color:#8f9cff}
+.steps li::before{content:counter(s,decimal-leading-zero);font:12px var(--mono);color:#38BDF8}
 .steps b{display:block;font:400 22px var(--head);letter-spacing:-.02em;margin:8px 0}.steps p{color:#9a9aa5;font-size:15px}
 .stack-h{margin-top:56px;font-size:20px}.chips{display:flex;gap:8px;flex-wrap:wrap;margin-top:12px}
 .chips span{border:1px solid #2e2e34;border-radius:5px;padding:7px 12px;font:12px var(--mono);color:#c0c0c8}
@@ -151,11 +151,11 @@ h3{font-size:24px;margin:28px 0 10px}
 
 /* Kontak & formulir */
 .contact{display:grid;grid-template-columns:1fr 1fr;gap:64px}
-.contact .links a:last-child{color:#8f9cff}
+.contact .links a:last-child{color:#38BDF8}
 form{display:grid;gap:16px}label{display:grid;gap:7px;font:500 12px var(--mono);letter-spacing:.03em;color:#b4b4bd}
 input,select,textarea{font:16px var(--body);background:#121214;color:#fff;border:1px solid #2c2c32;border-radius:7px;padding:13px 14px;width:100%}
 input:focus,select:focus,textarea:focus{outline:0;border-color:var(--blue)}
-.status{font-size:14px;min-height:1.4em;color:#8f9cff}
+.status{font-size:14px;min-height:1.4em;color:#38BDF8}
 .hp{position:absolute;left:-9999px;width:1px;height:1px;opacity:0}
 .foot{padding:40px 0;border-top:1px solid #1d1d21}.foot .wrap{display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:12px}.foot p{font:12px var(--mono);color:#85858f}
 .cover{width:100%;aspect-ratio:16/9;object-fit:cover;border-radius:10px;margin-top:20px}
@@ -269,7 +269,7 @@ input:focus,select:focus,textarea:focus{outline:0;border-color:var(--blue)}
 .hero {
   isolation: isolate;
   background:
-    radial-gradient(ellipse at 78% 28%, rgba(67,85,255,.18), transparent 38%),
+    radial-gradient(ellipse at 78% 28%, rgba(3,105,161,.18), transparent 38%),
     radial-gradient(ellipse at 12% 88%, rgba(255,106,61,.09), transparent 32%),
     var(--black);
 }
@@ -291,7 +291,7 @@ input:focus,select:focus,textarea:focus{outline:0;border-color:var(--blue)}
   box-shadow:
     0 0 0 42px rgba(255,255,255,.012),
     0 0 0 90px rgba(255,255,255,.009),
-    inset 0 0 90px rgba(67,85,255,.08);
+    inset 0 0 90px rgba(3,105,161,.08);
   animation: hero-orbit 24s linear infinite;
 }
 .hero::after {
@@ -299,7 +299,7 @@ input:focus,select:focus,textarea:focus{outline:0;border-color:var(--blue)}
   aspect-ratio: 1;
   right: 8%;
   top: 18%;
-  background: radial-gradient(circle, rgba(67,85,255,.18), transparent 68%);
+  background: radial-gradient(circle, rgba(3,105,161,.18), transparent 68%);
   animation: hero-breathe 8s ease-in-out infinite alternate;
 }
 .hero-in {
@@ -378,7 +378,7 @@ input:focus,select:focus,textarea:focus{outline:0;border-color:var(--blue)}
     box-shadow .4s ease;
   background-image:
     radial-gradient(rgba(255,255,255,.14) 1px, transparent 1.4px),
-    radial-gradient(ellipse at 85% 15%, rgba(67,85,255,.17), transparent 45%);
+    radial-gradient(ellipse at 85% 15%, rgba(3,105,161,.17), transparent 45%);
   background-size: 16px 16px, auto;
 }
 .dcard::after {
@@ -387,7 +387,7 @@ input:focus,select:focus,textarea:focus{outline:0;border-color:var(--blue)}
   z-index: -1;
   inset: 0;
   opacity: 0;
-  background: radial-gradient(circle at 80% 10%, rgba(67,85,255,.22), transparent 48%);
+  background: radial-gradient(circle at 80% 10%, rgba(3,105,161,.22), transparent 48%);
   transition: opacity .45s ease;
 }
 .dcard:hover {
@@ -408,7 +408,7 @@ input:focus,select:focus,textarea:focus{outline:0;border-color:var(--blue)}
 }
 .pillbtn:hover {
   transform: translateY(-2px);
-  border-color: #8f9cff;
+  border-color: #38BDF8;
   color: #cbd0ff;
 }
 .box { transition: transform .55s var(--ease-out), opacity .45s ease, border-color .35s ease; }
@@ -470,7 +470,7 @@ input:focus,select:focus,textarea:focus{outline:0;border-color:var(--blue)}
 .chips span:hover {
   color: #fff;
   border-color: #858fff;
-  background: rgba(67,85,255,.12);
+  background: rgba(3,105,161,.12);
   transform: translateY(-3px);
 }
 .term button { transition: background .2s ease, transform .2s var(--ease-out); }

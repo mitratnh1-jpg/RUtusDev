@@ -1,0 +1,15 @@
+/* Tailwind v4 tanpa preflight: reset bawaan styles.css tetap dipakai, utilitas Tailwind tersedia untuk komponen baru. */
+@layer theme, base, components, utilities;
+@import "tailwindcss/theme.css" layer(theme);
+@import "tailwindcss/utilities.css" layer(utilities);
+
+@theme {
+  --font-display: "Space Grotesk", system-ui, sans-serif;
+  --font-sans: "Inter", system-ui, sans-serif;
+  --font-mono: "JetBrains Mono", ui-monospace, monospace;
+  --color-obsidian: #080B14;
+  --color-obsidian-panel: #10141F;
+  --color-sky: #38BDF8;
+  --color-sky-deep: #0369A1;
+  --color-sky-mid: #0284C7;
+}

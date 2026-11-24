@@ -2,6 +2,7 @@ import { useEffect, useRef, useState, type ReactNode } from 'react';
 import Dots from './Dots';
 import Contact from './Contact';
 import Deck from './Deck';
+import Reveal from './Reveal';
 import { onScrollFrame, clamp, reducedMotion } from './scroll';
 import { useContent } from './useContent';
 import type { Article, Project, Stats, Testimonial } from './types';
@@ -94,9 +95,11 @@ function Services({ items }: { items: { title: string; summary?: string }[] }) {
   return (
     <section className="light" id="services" data-nav="light">
       <div className="wrap">
+        <Reveal>
         <p className="pill">Mengapa RUtusdev</p>
         <h2><b>Semua yang bisnis butuhkan untuk tampil online.</b> <span>Dibangun agar mudah dirawat.</span></h2>
         <p className="lead dim">Satu studio untuk strategi, desain, pengembangan, dan perawatan produk digital Anda, dengan lingkungan yang aman dan terpisah.</p>
+        </Reveal>
         <div className="panel">
           {items.length ? items.map(s => (
             <article className="cell" key={s.title}><h3>{s.title}</h3><p>{s.summary}</p>
@@ -137,10 +140,10 @@ function ProjectCard({ p }: { p: Project }) {
 function Work({ items }: { items: Project[] }) {
   return (
     <section className="sandbg" id="work" data-nav="light">
-      <div className="wrap">
+      <Reveal className="wrap">
         <p className="pill">Karya pilihan</p>
         <h2><b>Bukti, bukan janji.</b> <span>Studi kasus yang bisa Anda lihat sendiri.</span></h2>
-      </div>
+      </Reveal>
       <div className="dscroll wrap">
         {items.length ? items.map(p => <ProjectCard key={p.slug || p.title} p={p} />) : (<>
           <article className="dcard">
@@ -162,7 +165,7 @@ function Badge({ children, dotted, hex }: { children: string; dotted?: boolean; 
     <svg viewBox="0 0 100 100" className="seal" aria-hidden="true">
       {hex ? <polygon points="50,6 88,28 88,72 50,94 12,72 12,28" fill="none" stroke="#fff" strokeWidth="2" />
         : <circle cx="50" cy="50" r="40" fill="none" stroke="#fff" strokeWidth={dotted ? 3 : 2} strokeDasharray={dotted ? '0.1 6' : undefined} strokeLinecap="round" />}
-      <text x="50" y="56" textAnchor="middle" fill="#fff" fontSize="17" fontWeight="500" fontFamily="Hanken Grotesk, sans-serif">{children}</text>
+      <text x="50" y="56" textAnchor="middle" fill="#fff" fontSize="17" fontWeight="500" fontFamily="Space Grotesk, sans-serif">{children}</text>
     </svg>
   );
 }
