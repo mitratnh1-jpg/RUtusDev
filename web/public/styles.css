@@ -36,7 +36,7 @@ h3{font-size:24px;margin:28px 0 10px}
 .burger i{display:block;height:1.5px;background:currentColor;width:100%}
 
 /* Hero */
-.hero{position:relative;min-height:100svh;display:flex;flex-direction:column;justify-content:space-between;padding:150px 0 36px;overflow:hidden;background:var(--black);color:#fff;border-radius:0 0 28px 28px}
+.hero{position:relative;min-height:78svh;display:flex;flex-direction:column;justify-content:center;padding:130px 0 96px;overflow:hidden;background:var(--black);color:#fff;border-radius:0 0 28px 28px}
 #dots{position:absolute;inset:0;width:100%;height:100%}
 .hero-in{position:relative;width:100%}
 .hero h1{max-width:12ch}.hero h1 b{color:#fff}.hero h1 span{opacity:.5}
@@ -614,14 +614,14 @@ button:focus-visible, a:focus-visible {
 /* Sudut dibuat dari potongan kecil yang diskalakan (hanya transform → berjalan di GPU, tanpa repaint) */
 .hero{border-radius:0}
 .blue{border-radius:0;position:relative}
-.corners{position:absolute;left:0;right:0;height:28px;pointer-events:none;z-index:3;--s:1}
-.corners::before,.corners::after{content:"";position:absolute;width:28px;height:28px;transform:scale(var(--s));will-change:transform}
+.corners{--cr:56px;position:absolute;left:0;right:0;height:var(--cr);pointer-events:none;z-index:3;--s:1}
+.corners::before,.corners::after{content:"";position:absolute;width:var(--cr);height:var(--cr);transform:scale(var(--s));will-change:transform}
 .corners.bottom{bottom:-1px}
-.corners.bottom::before{left:0;transform-origin:0 100%;background:radial-gradient(circle at 100% 0,transparent 27px,var(--bg) 28px)}
-.corners.bottom::after{right:0;transform-origin:100% 100%;background:radial-gradient(circle at 0 0,transparent 27px,var(--bg) 28px)}
+.corners.bottom::before{left:0;transform-origin:0 100%;background:radial-gradient(circle at 100% 0,transparent calc(var(--cr) - 1px),var(--bg) var(--cr))}
+.corners.bottom::after{right:0;transform-origin:100% 100%;background:radial-gradient(circle at 0 0,transparent calc(var(--cr) - 1px),var(--bg) var(--cr))}
 .corners.top{top:-1px}
-.corners.top::before{left:0;transform-origin:0 0;background:radial-gradient(circle at 100% 100%,transparent 27px,var(--sand) 28px)}
-.corners.top::after{right:0;transform-origin:100% 0;background:radial-gradient(circle at 0 100%,transparent 27px,var(--sand) 28px)}
+.corners.top::before{left:0;transform-origin:0 0;background:radial-gradient(circle at 100% 100%,transparent calc(var(--cr) - 1px),var(--sand) var(--cr))}
+.corners.top::after{right:0;transform-origin:100% 0;background:radial-gradient(circle at 0 100%,transparent calc(var(--cr) - 1px),var(--sand) var(--cr))}
 
 /* Animasi masuk hero tidak lagi "menahan" transform, sehingga bisa digeser mengikuti scroll */
 .hero .hero-in,.hero .logos{animation-fill-mode:backwards;will-change:transform,opacity}
@@ -642,4 +642,23 @@ button:focus-visible, a:focus-visible {
       animation:text-slide linear both;animation-timeline:view();animation-range:entry 5% entry 45%}
     section:not(.hero) .lead{animation-range:entry 12% entry 52%}
   }
+}
+
+/* Hero lebih pendek: bagian bawah langsung memperlihatkan peralihan semi bulat → kotak */
+.hero .row{margin-top:30px}
+@media(max-width:760px){.hero{min-height:70svh;padding:112px 0 84px}.corners{--cr:40px}}
+
+/* Progress scroll */
+.sprog{position:fixed;left:0;top:0;height:3px;width:100%;z-index:60;background:linear-gradient(90deg,var(--blue),var(--orange));transform-origin:0 50%;transform:scaleX(var(--p,0));pointer-events:none;will-change:transform}
+
+/* Muncul bergantian saat digulir */
+@media(prefers-reduced-motion:no-preference){
+  .rv{opacity:0;transform:translate3d(0,42px,0) scale(.96);filter:blur(4px);
+    transition:opacity .7s cubic-bezier(.2,.7,.2,1),transform .9s cubic-bezier(.2,.8,.2,1),filter .7s ease;
+    transition-delay:calc(var(--i,0)*90ms);will-change:transform,opacity}
+  .rv.in{opacity:1;transform:none;filter:none}
+  .steps li.rv{transform:translate3d(-30px,0,0)}
+  .stat.rv,.sealcard.rv{transform:translate3d(0,30px,0) scale(.9)}
+  /* judul section: garis biru memanjang */
+  section:not(.hero) h2{position:relative}
 }

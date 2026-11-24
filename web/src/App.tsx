@@ -67,17 +67,16 @@ function Hero({ h }: { h: { eyebrow?: string; headline?: string; headline_dim?: 
   useEffect(() => {
     const el = root.current!;
     if (reducedMotion()) return;
-    const body = el.querySelector<HTMLElement>('.hero-in')!, logos = el.querySelector<HTMLElement>('.logos')!, dots = el.querySelector<HTMLElement>('#dots')!;
+    const body = el.querySelector<HTMLElement>('.hero-in')!, dots = el.querySelector<HTMLElement>('#dots')!;
     const tags = el.querySelectorAll<HTMLElement>('.tag'), corners = el.querySelector<HTMLElement>('.corners')!;
     return onScrollFrame(y => {
       const hp = clamp(y / (el.offsetHeight * 0.55));
-      // teks "masuk" ke atas sambil memudar; titik bergerak lebih lambat (paralaks)
-      body.style.transform = `translate3d(0,${(-hp * 70).toFixed(1)}px,0)`; body.style.opacity = String(clamp(1 - hp * 1.25));
-      logos.style.transform = `translate3d(0,${(-hp * 28).toFixed(1)}px,0)`; logos.style.opacity = String(clamp(1 - hp * 0.7));
-      dots.style.transform = `translate3d(0,${(hp * 60).toFixed(1)}px,0)`;
-      tags.forEach(t => { t.style.opacity = String(clamp(1 - hp * 2)); });
-      // sudut bawah yang membulat menjadi kotak saat halaman digulir
-      corners.style.setProperty('--s', String(clamp(1 - y / 170)));
+      // teks naik sambil mengecil & memudar; titik bergerak lebih lambat (paralaks)
+      body.style.transform = `translate3d(0,${(-hp * 80).toFixed(1)}px,0) scale(${(1 - hp * 0.06).toFixed(3)})`; body.style.opacity = String(clamp(1 - hp * 1.25));
+      dots.style.transform = `translate3d(0,${(hp * 70).toFixed(1)}px,0)`;
+      tags.forEach((t, i) => { t.style.opacity = String(clamp(1 - hp * 2)); t.style.translate = `0 ${(-hp * (30 + i * 22)).toFixed(1)}px`; });
+      // sudut bawah membulat besar → kotak, lebih lama & lebih jelas
+      corners.style.setProperty('--s', String(clamp(1 - y / (el.offsetHeight * 0.4))));
     });
   }, []);
   return (
@@ -90,7 +89,6 @@ function Hero({ h }: { h: { eyebrow?: string; headline?: string; headline_dim?: 
         <p className="lead">{h.subheadline || 'Website, aplikasi web, dan solusi digital custom — dirancang, dibangun, dan diluncurkan sampai siap dipakai.'}</p>
         <div className="row"><a className="btn btn-blue" href="#work">{h.cta_primary || 'Lihat karya'}</a><a className="btn btn-ghost" href="#contact">{h.cta_secondary || 'Jadwalkan konsultasi'}</a></div>
       </div>
-      <div className="logos wrap">{['Cloudflare', 'Supabase', 'React', 'TypeScript', 'PostgreSQL'].map(x => <span key={x}>{x}</span>)}</div>
       <i className="corners bottom" aria-hidden="true" />
     </section>
   );
@@ -301,13 +299,47 @@ function Articles({ items }: { items: Article[] }) {
   );
 }
 
+const REVEAL = '.cell,.dcard,.qcard,.stat,.art,.sealcard,.steps li,.acard,.seg,.pkg,.term-row,.chips span,.bgrid>*,.stack-h,.seals-h';
+// Elemen muncul bergantian (stagger) saat masuk layar; kelas dilepas setelah selesai agar hover tetap normal.
+function useReveal(dep: unknown) {
+  useEffect(() => {
+    if (reducedMotion() || !('IntersectionObserver' in window)) return;
+    const els = Array.from(document.querySelectorAll<HTMLElement>(REVEAL)).filter(e => !e.classList.contains('rv'));
+    const io = new IntersectionObserver(es => {
+      es.forEach(e => {
+        if (!e.isIntersecting) return;
+        const t = e.target as HTMLElement; io.unobserve(t);
+        t.classList.add('in');
+        setTimeout(() => t.classList.remove('rv', 'in'), 1100 + Number(t.style.getPropertyValue('--i') || 0) * 90);
+      });
+    }, { threshold: 0.12, rootMargin: '0px 0px -6% 0px' });
+    els.forEach(e => {
+      const sib = Array.from(e.parentElement?.children ?? []).filter(x => x.matches(REVEAL));
+      e.style.setProperty('--i', String(Math.min(5, Math.max(0, sib.indexOf(e)))));
+      e.classList.add('rv'); io.observe(e);
+    });
+    return () => io.disconnect();
+  }, [dep]);
+}
+
+function Progress() {
+  const r = useRef<HTMLDivElement>(null);
+  useEffect(() => onScrollFrame((y, vh) => {
+    const max = document.documentElement.scrollHeight - vh;
+    r.current?.style.setProperty('--p', String(max > 0 ? clamp(y / max) : 0));
+  }), []);
+  return <div className="sprog" ref={r} aria-hidden="true" />;
+}
+
 export default function App() {
   const c = useContent(), s = c?.settings, h = s?.hero ?? {}, ct = s?.contact ?? {};
+  useReveal(c);
   const wa = /^\d{6,16}$/.test(ct.whatsapp || '') ? ct.whatsapp! : '6280000000000';
   const email = /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(ct.email || '') ? ct.email! : 'hello@rutusdev.com';
   const testi = [0, 1].map(i => c?.testimonials?.[i] ?? DEFAULT_TESTI[i]);
   return (
     <>
+      <Progress />
       <Nav />
       <main id="top">
         <Hero h={h} />
