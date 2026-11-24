@@ -2,6 +2,16 @@
   "name": "rutusdev",
   "private": true,
   "type": "module",
-  "scripts": { "dev": "wrangler dev", "deploy": "wrangler deploy" },
-  "devDependencies": { "wrangler": "^4", "typescript": "^5", "@cloudflare/workers-types": "^4" }
+  "scripts": {
+    "dev": "vite web",
+    "dev:api": "wrangler dev",
+    "build": "vite build web",
+    "typecheck": "tsc -p web",
+    "deploy": "npm run build && wrangler deploy"
+  },
+  "dependencies": { "react": "^18.3.1", "react-dom": "^18.3.1" },
+  "devDependencies": {
+    "@cloudflare/workers-types": "^4", "@types/react": "^18.3.0", "@types/react-dom": "^18.3.0",
+    "@vitejs/plugin-react": "^4", "typescript": "^5", "vite": "^5", "wrangler": "^4"
+  }
 }

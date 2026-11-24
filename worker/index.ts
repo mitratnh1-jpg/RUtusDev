@@ -15,8 +15,32 @@ const TABLES: Record<string, Cfg> = {
   testimonials: { cols: ['client_name','organization','quote','avatar_key','is_published'], order: 'created_at.desc' },
   clients: { cols: ['name','logo_key','website_url','is_published'], order: 'created_at.desc' },
   leads: { cols: ['status','notes'], order: 'created_at.desc', create: false, del: false },
+  organizations: { cols: ['name','website','industry','notes'], order: 'created_at.desc' },
+  contacts: { cols: ['name','email','whatsapp','position','organization_id','notes'], order: 'created_at.desc' },
+  deals: { cols: ['title','organization_id','contact_id','value','stage','source','expected_close','notes'], order: 'created_at.desc' },
+  interactions: { cols: ['deal_id','kind','note'], order: 'created_at.desc' },
+  activity_logs: { cols: [], order: 'created_at.desc', create: false, del: false },
+  proposals: { cols: ['number','title','deal_id','status','valid_until','items','scope','terms'], order: 'created_at.desc' },
+  invoices: { cols: ['number','title','deal_id','organization_id','status','issue_date','due_date','items','paid_amount','notes'], order: 'created_at.desc' },
+  tasks: { cols: ['title','deal_id','milestone','status','priority','due_date','notes'], order: 'due_date.asc.nullslast' },
 };
 const UUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/;
+const SETTINGS: Record<string, string[]> = {
+  hero: ['eyebrow','headline','headline_dim','subheadline','cta_primary','cta_secondary'],
+  contact: ['whatsapp','email'],
+};
+// Fallback rate limit (Cache API, per-lokasi). Tidak berfungsi di domain *.workers.dev; pakai domain sendiri
+// atau binding RATE_LIMITER / aturan WAF untuk perlindungan yang lebih kuat.
+async function limited(ip: string, bucket: string, max: number): Promise<boolean> {
+  const c = caches.default, k = new Request(`https://rl.internal/${bucket}/${encodeURIComponent(ip)}`);
+  let n = 0, t = Date.now();
+  const hit = await c.match(k);
+  if (hit) { const d = (await hit.json()) as { n: number; t: number }; n = d.n; t = d.t; }
+  n++;
+  const ttl = Math.max(1, 60 - Math.floor((Date.now() - t) / 1000));
+  await c.put(k, new Response(JSON.stringify({ n, t }), { headers: { 'Cache-Control': `max-age=${ttl}` } }));
+  return n > max;
+}
 const SERVICES = ['website','webapp','system','custom'];
 const json = (d: unknown, s = 200, h: Record<string,string> = {}) =>
   new Response(JSON.stringify(d), { status: s, headers: { 'Content-Type': 'application/json', 'Cache-Control': 'no-store', ...h } });
@@ -45,6 +69,12 @@ function pick(cfg: Cfg, body: Record<string, unknown>) {
   const o: Record<string, unknown> = {};
   for (const c of cfg.cols) if (c in body) {
     let v = body[c];
+    if (c.endsWith('_id') && typeof v === 'string' && v && !UUID.test(v)) continue;
+    if (c === 'items') {
+      const a = Array.isArray(v) ? v.slice(0, 50) : [];
+      v = a.map((x: any) => ({ desc: clean(x?.desc, 200), qty: Math.max(0, Math.min(1e6, Number(x?.qty) || 0)), price: Math.max(0, Math.min(1e12, Number(x?.price) || 0)) })).filter(x => x.desc);
+    }
+    if (c === 'value' || c === 'paid_amount') v = Math.max(0, Math.min(1e13, Number(v) || 0));
     if (c === 'technologies' && typeof v === 'string') v = v.split(',').map(s => s.trim()).filter(Boolean).slice(0, 20);
     if (typeof v === 'string') v = v.slice(0, c === 'body' || c === 'description' ? 20000 : 2000);
     o[c] = v === '' ? null : v;
@@ -55,9 +85,27 @@ function pick(cfg: Cfg, body: Record<string, unknown>) {
 async function admin(req: Request, env: Env, parts: string[]): Promise<Response> {
   const origin = req.headers.get('Origin');
   if (req.method !== 'GET' && origin && origin !== (env.ALLOWED_ORIGIN || new URL(req.url).origin)) return json({ error: 'forbidden' }, 403);
+  if (await limited(req.headers.get('CF-Connecting-IP') || 'unknown', 'admin', 120)) return json({ error: 'rate_limited' }, 429);
   const me = await auth(req, env);
   if (!me) return json({ error: 'unauthorized' }, 401);
-  const [table, id] = parts;
+  const [table, id, action] = parts;
+  if (table === 'settings') {
+    if (req.method === 'GET') return json(await sb(env, 'site_settings?select=key,value').then(r => r.json()));
+    const keys = SETTINGS[id || ''];
+    if (req.method !== 'PUT' || !keys) return json({ error: 'method' }, 405);
+    let b: Record<string, unknown>;
+    try { b = JSON.parse(await req.text()); } catch { return json({ error: 'bad_json' }, 400); }
+    const v: Record<string, string> = {};
+    for (const k of keys) v[k] = clean(b[k], 300);
+    if (id === 'contact') {
+      v.whatsapp = v.whatsapp.replace(/\D/g, '').slice(0, 16);
+      if (v.email && !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(v.email)) return json({ error: 'email_invalid' }, 400);
+    }
+    await sb(env, 'site_settings?on_conflict=key', { method: 'POST', headers: { Prefer: 'resolution=merge-duplicates,return=minimal' },
+      body: JSON.stringify({ key: id, value: v, updated_at: new Date().toISOString() }) });
+    await log(env, me.id, 'update', 'settings', id);
+    return json({ ok: true });
+  }
   if (id && !UUID.test(id)) return json({ error: 'bad_id' }, 400);
 
   if (table === 'media') {
@@ -91,6 +139,18 @@ async function admin(req: Request, env: Env, parts: string[]): Promise<Response>
     return json({ error: 'method' }, 405);
   }
 
+  if (table === 'leads' && id && action === 'convert' && req.method === 'POST') {
+    const [l] = (await sb(env, `leads?id=eq.${id}&select=*`).then(r => r.json())) as any[];
+    if (!l) return json({ error: 'not_found' }, 404);
+    const c = (await sb(env, 'contacts', { method: 'POST', headers: { Prefer: 'return=representation' },
+      body: JSON.stringify({ name: l.name, email: l.email, whatsapp: l.whatsapp }) }).then(r => r.json())) as any[];
+    const d = await sb(env, 'deals', { method: 'POST', headers: { Prefer: 'return=minimal' },
+      body: JSON.stringify({ title: `Proyek ${l.name}`, contact_id: c[0]?.id ?? null, stage: 'baru', source: 'website', notes: l.brief }) });
+    if (!d.ok) return json({ error: 'db' }, 400);
+    await sb(env, `leads?id=eq.${id}`, { method: 'PATCH', body: JSON.stringify({ status: 'contacted' }) });
+    await log(env, me.id, 'convert', 'leads', id);
+    return json({ ok: true }, 201);
+  }
   const cfg = TABLES[table];
   if (!cfg) return json({ error: 'not_found' }, 404);
   if (req.method === 'GET') return json(await sb(env, `${table}?select=*&order=${cfg.order}&limit=200`).then(r => r.json()));
@@ -101,6 +161,7 @@ async function admin(req: Request, env: Env, parts: string[]): Promise<Response>
     return json({ ok: true });
   }
   if (req.method === 'POST' || req.method === 'PATCH') {
+    if (!cfg.cols.length) return json({ error: 'method' }, 405);
     if (req.method === 'POST' && cfg.create === false) return json({ error: 'method' }, 405);
     if (req.method === 'PATCH' && !id) return json({ error: 'bad_id' }, 400);
     const raw = await req.text();
@@ -108,6 +169,9 @@ async function admin(req: Request, env: Env, parts: string[]): Promise<Response>
     let body: Record<string, unknown>;
     try { body = JSON.parse(raw); } catch { return json({ error: 'bad_json' }, 400); }
     const data = pick(cfg, body);
+    if (req.method === 'POST' && (table === 'proposals' || table === 'invoices') && !data.number) {
+      const d = new Date(); data.number = `${table === 'invoices' ? 'INV' : 'PNW'}-${d.getFullYear()}${String(d.getMonth() + 1).padStart(2, '0')}-${String(Math.floor(1000 + Math.random() * 9000))}`;
+    }
     if (typeof data.slug === 'string' && !/^[a-z0-9-]{1,100}$/.test(data.slug)) return json({ error: 'slug', detail: 'Slug: huruf kecil, angka, tanda minus' }, 400);
     const r = await sb(env, req.method === 'POST' ? table : `${table}?id=eq.${id}`, {
       method: req.method, headers: { Prefer: 'return=representation' }, body: JSON.stringify(data) });
@@ -123,13 +187,15 @@ async function publicContent(req: Request, env: Env, ctx: ExecutionContext): Pro
   const hit = await cache.match(key);
   if (hit) return hit;
   const q = (t: string, extra = '') => sb(env, `${t}?is_published=eq.true${extra}`).then(r => r.json());
-  const [services, projects, testimonials, clients] = await Promise.all([
+  const [services, projects, testimonials, clients, st] = await Promise.all([
     q('services', '&select=title,slug,summary,icon&order=sort_order.asc'),
     q('projects', '&select=title,slug,summary,category,technologies,cover_key,demo_url,featured&order=created_at.desc&limit=12'),
     q('testimonials', '&select=client_name,organization,quote&order=created_at.desc&limit=6'),
     q('clients', '&select=name,logo_key,website_url'),
+    sb(env, 'site_settings?select=key,value').then(r => r.json()) as Promise<{ key: string; value: unknown }[]>,
   ]);
-  const res = json({ services, projects, testimonials, clients }, 200, { 'Cache-Control': 'public, max-age=30, s-maxage=60' });
+  const settings = Object.fromEntries((Array.isArray(st) ? st : []).map(x => [x.key, x.value]));
+  const res = json({ services, projects, testimonials, clients, settings }, 200, { 'Cache-Control': 'public, max-age=30, s-maxage=60' });
   ctx.waitUntil(cache.put(key, res.clone()));
   return res;
 }
@@ -138,7 +204,8 @@ async function handleLead(req: Request, env: Env): Promise<Response> {
   const origin = req.headers.get('Origin');
   if (origin && origin !== (env.ALLOWED_ORIGIN || new URL(req.url).origin)) return json({ error: 'forbidden' }, 403);
   const ip = req.headers.get('CF-Connecting-IP') || 'unknown';
-  if (env.RATE_LIMITER && !(await env.RATE_LIMITER.limit({ key: ip })).success) return json({ error: 'rate_limited' }, 429);
+  const blocked = env.RATE_LIMITER ? !(await env.RATE_LIMITER.limit({ key: ip })).success : await limited(ip, 'lead', 5);
+  if (blocked) return json({ error: 'rate_limited' }, 429);
   const raw = await req.text();
   if (raw.length > 8000) return json({ error: 'too_large' }, 413);
   let body: Record<string, unknown>;

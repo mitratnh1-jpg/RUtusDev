@@ -61,3 +61,58 @@ alter table public.clients enable row level security;
 alter table public.media enable row level security;
 -- Setelah membuat user admin di Supabase Auth, jalankan:
 -- insert into public.admin_profiles (user_id, display_name) values ('<UUID-USER>', 'Admin');
+
+-- ===== Settings (Hero & Kontak) =====
+create table if not exists public.site_settings (
+  key text primary key, value jsonb not null default '{}', updated_at timestamptz default now());
+alter table public.site_settings enable row level security;
+
+-- ===== CRM ringan (Fase 2) =====
+create table if not exists public.organizations (
+  id uuid primary key default gen_random_uuid(), name text not null, website text, industry text, notes text,
+  created_at timestamptz default now());
+create table if not exists public.contacts (
+  id uuid primary key default gen_random_uuid(), name text not null, email text, whatsapp text, position text, notes text,
+  organization_id uuid references public.organizations(id) on delete set null, created_at timestamptz default now());
+create table if not exists public.deals (
+  id uuid primary key default gen_random_uuid(), title text not null,
+  organization_id uuid references public.organizations(id) on delete set null,
+  contact_id uuid references public.contacts(id) on delete set null,
+  value numeric(14,0) default 0,
+  stage text not null default 'baru' check (stage in ('baru','dihubungi','discovery','proposal','negosiasi','menang','kalah')),
+  source text, expected_close date, notes text, created_at timestamptz default now());
+create table if not exists public.interactions (
+  id uuid primary key default gen_random_uuid(),
+  deal_id uuid references public.deals(id) on delete cascade,
+  kind text default 'catatan' check (kind in ('catatan','telepon','whatsapp','email','rapat')),
+  note text not null, created_at timestamptz default now());
+create index if not exists deals_stage_idx on public.deals (stage);
+create index if not exists interactions_deal_idx on public.interactions (deal_id, created_at desc);
+alter table public.organizations enable row level security;
+alter table public.contacts enable row level security;
+alter table public.deals enable row level security;
+alter table public.interactions enable row level security;
+
+-- ===== Penawaran, Invoice, Tugas (Fase 2) =====
+-- Rincian item disimpan sebagai JSONB: [{"desc":"...","qty":1,"price":1500000}]
+create table if not exists public.proposals (
+  id uuid primary key default gen_random_uuid(), number text unique not null, title text not null,
+  deal_id uuid references public.deals(id) on delete set null,
+  status text not null default 'draft' check (status in ('draft','terkirim','disetujui','ditolak')),
+  valid_until date, items jsonb not null default '[]', scope text, terms text, created_at timestamptz default now());
+create table if not exists public.invoices (
+  id uuid primary key default gen_random_uuid(), number text unique not null, title text not null,
+  deal_id uuid references public.deals(id) on delete set null,
+  organization_id uuid references public.organizations(id) on delete set null,
+  status text not null default 'draf' check (status in ('draf','terkirim','dibayar_sebagian','lunas','batal')),
+  issue_date date default current_date, due_date date, items jsonb not null default '[]',
+  paid_amount numeric(14,0) default 0, notes text, created_at timestamptz default now());
+create table if not exists public.tasks (
+  id uuid primary key default gen_random_uuid(), title text not null,
+  deal_id uuid references public.deals(id) on delete cascade, milestone text,
+  status text not null default 'todo' check (status in ('todo','berjalan','selesai')),
+  priority text not null default 'sedang' check (priority in ('rendah','sedang','tinggi')),
+  due_date date, notes text, created_at timestamptz default now());
+alter table public.proposals enable row level security;
+alter table public.invoices enable row level security;
+alter table public.tasks enable row level security;

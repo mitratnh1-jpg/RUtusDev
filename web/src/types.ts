@@ -1,0 +1,13 @@
+export type Hero = { eyebrow?: string; headline?: string; headline_dim?: string; subheadline?: string; cta_primary?: string; cta_secondary?: string };
+export type Service = { title: string; summary?: string };
+export type Project = { title: string; slug?: string; summary?: string; category?: string; technologies?: string[]; cover_key?: string; demo_url?: string };
+export type Testimonial = { client_name: string; organization?: string; quote: string };
+export type Content = {
+  services: Service[]; projects: Project[]; testimonials: Testimonial[];
+  settings: { hero?: Hero; contact?: { whatsapp?: string; email?: string } };
+};
+declare global {
+  interface Window {
+    turnstile?: { render(el: HTMLElement, o: object): string; reset(id?: string): void; getResponse(id?: string): string | undefined };
+  }
+}

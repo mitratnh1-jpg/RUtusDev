@@ -3,7 +3,25 @@ import type { Env } from './index';
 
 const SLUG = /^[a-z0-9-]{1,100}$/;
 const esc = (s: unknown) => String(s ?? '').replace(/[&<>"']/g, c => ({ '&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;' }[c]!));
-const paras = (t: unknown) => String(t ?? '').split(/\n{2,}/).map(p => `<p>${esc(p.trim()).replace(/\n/g, '<br>')}</p>`).join('');
+const inline = (t: string) => t.replace(/`([^`]+)`/g, '<code>$1</code>').replace(/\*\*([^*]+)\*\*/g, '<strong>$1</strong>')
+  .replace(/\*([^*]+)\*/g, '<em>$1</em>').replace(/\[([^\]]+)\]\((https?:\/\/[^\s)]+)\)/g, '<a href="$2" rel="noopener nofollow">$1</a>');
+// Markdown minimal & aman: seluruh teks di-escape dulu, baru diberi tag; tautan hanya http(s).
+function paras(src: unknown): string {
+  const out: string[] = []; let para: string[] = [], list: string[] = [], code: string[] | null = null;
+  const fp = () => { if (para.length) out.push(`<p>${inline(para.join('<br>'))}</p>`); para = []; };
+  const fl = () => { if (list.length) out.push(`<ul>${list.map(i => `<li>${inline(i)}</li>`).join('')}</ul>`); list = []; };
+  for (const line of esc(src).split('\n')) {
+    if (line.startsWith('```')) { if (code) { out.push(`<pre><code>${code.join('\n')}</code></pre>`); code = null; } else { fp(); fl(); code = []; } continue; }
+    if (code) { code.push(line); continue; }
+    const h = line.match(/^(#{1,3}) (.+)/), li = line.match(/^[-*] (.+)/);
+    if (h) { fp(); fl(); out.push(`<h${h[1].length + 1}>${inline(h[2])}</h${h[1].length + 1}>`); }
+    else if (li) { fp(); list.push(li[1]); }
+    else if (!line.trim()) { fp(); fl(); }
+    else { fl(); para.push(line.trim()); }
+  }
+  if (code) out.push(`<pre><code>${code.join('\n')}</code></pre>`);
+  fp(); fl(); return out.join('');
+}
 const ld = (o: unknown) => `<script type="application/ld+json">${JSON.stringify(o).replace(/</g, '\\u003c')}</script>`;
 const safeUrl = (u: unknown) => (/^https?:\/\//.test(String(u ?? '')) ? esc(u) : '');
 
@@ -24,7 +42,7 @@ function layout(origin: string, p: Page): Response {
 <link rel="preconnect" href="https://fonts.googleapis.com"><link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500&family=JetBrains+Mono:wght@400;500&family=Space+Grotesk:wght@300;400;500;700&display=swap" rel="stylesheet">
 <link rel="stylesheet" href="/styles.css">${p.ld ? ld(p.ld) : ''}</head><body>
-<header class="nav"><a class="logo" href="/">RUtusdev<span>.</span></a><nav class="nav-links" style="display:flex"><a href="/#services">Services</a><a href="/#work">Work</a><a href="/articles">Articles</a><a href="/#contact">Contact</a></nav></header>
+<header class="nav"><a class="logo" href="/">RUtusdev<span>.</span></a><nav class="nav-links" style="display:flex"><a href="/#services">Layanan</a><a href="/#work">Karya</a><a href="/articles">Artikel</a><a href="/#contact">Kontak</a></nav></header>
 <main class="doc"><div class="wrap">${p.body}</div></main>
 <footer class="foot dark"><div class="wrap"><a class="logo" href="/">RUtusdev<span>.</span></a><p>Create. Build. Deploy.</p></div></footer></body></html>`;
   return new Response(html, { status: p.status || 200, headers: { 'Content-Type': 'text/html; charset=utf-8',
@@ -51,8 +69,8 @@ export async function pages(req: Request, env: Env, path: string): Promise<Respo
 
   if (path === '/articles') {
     const a = await get(env, 'articles?status=eq.published&select=title,slug,excerpt,created_at&order=created_at.desc&limit=50');
-    return layout(origin, { title: 'Articles — RUtusdev', desc: 'Catatan tentang pengembangan website, web application, dan solusi digital.', path,
-      body: `<h1>Articles</h1><div class="list">${a.length ? a.filter((x: any) => SLUG.test(x.slug || '')).map((x: any) =>
+    return layout(origin, { title: 'Artikel — RUtusdev', desc: 'Catatan tentang pengembangan website, web application, dan solusi digital.', path,
+      body: `<h1>Artikel</h1><div class="list">${a.length ? a.filter((x: any) => SLUG.test(x.slug || '')).map((x: any) =>
         `<a class="item" href="/articles/${x.slug}"><small>${esc((x.created_at || '').slice(0, 10))}</small><h2>${esc(x.title)}</h2><p>${esc(x.excerpt)}</p></a>`).join('') : '<p>Belum ada artikel.</p>'}</div>` });
   }
 
@@ -66,19 +84,19 @@ export async function pages(req: Request, env: Env, path: string): Promise<Respo
       return layout(origin, { title: a.seo_title || `${a.title} — RUtusdev`, desc: a.seo_description || a.excerpt || a.title, path, og: a.cover_key, type: 'article',
         ld: { '@context': 'https://schema.org', '@type': 'Article', headline: a.title, description: a.seo_description || a.excerpt, datePublished: a.created_at,
           mainEntityOfPage: origin + path, publisher: { '@type': 'Organization', name: 'RUtusdev' }, ...(a.cover_key ? { image: `${origin}/media/${a.cover_key}` } : {}) },
-        body: `<p><a href="/articles">← Articles</a></p><h1>${esc(a.title)}</h1><p class="meta">${esc((a.created_at || '').slice(0, 10))}</p>${
+        body: `<p><a href="/articles">← Artikel</a></p><h1>${esc(a.title)}</h1><p class="meta">${esc((a.created_at || '').slice(0, 10))}</p>${
           a.cover_key ? `<img class="cover" src="/media/${esc(a.cover_key)}" alt="${esc(a.title)}">` : ''}<div class="prose">${paras(a.body)}</div>` });
     }
     const [p] = await get(env, `projects?slug=eq.${slug}&is_published=eq.true&select=*&limit=1`);
     if (!p) return notFound(origin);
     const tech = (p.technologies || []) as string[], demo = safeUrl(p.demo_url);
-    return layout(origin, { title: `${p.title} — Case study | RUtusdev`, desc: p.summary || p.title, path, og: p.cover_key,
+    return layout(origin, { title: `${p.title} — Studi kasus | RUtusdev`, desc: p.summary || p.title, path, og: p.cover_key,
       ld: { '@context': 'https://schema.org', '@type': 'CreativeWork', name: p.title, description: p.summary, creator: { '@type': 'Organization', name: 'RUtusdev' },
         datePublished: p.created_at, ...(demo ? { url: demo } : {}), ...(p.cover_key ? { image: `${origin}/media/${p.cover_key}` } : {}) },
-      body: `<p><a href="/#work">← Selected work</a></p><h1>${esc(p.title)}</h1><p class="lead">${esc(p.summary)}</p>${
+      body: `<p><a href="/#work">← Karya pilihan</a></p><h1>${esc(p.title)}</h1><p class="lead">${esc(p.summary)}</p>${
         p.cover_key ? `<img class="cover" src="/media/${esc(p.cover_key)}" alt="${esc(p.title)}">` : ''}<p class="chips">${
         [p.category, ...tech].filter(Boolean).map(t => `<span>${esc(t)}</span>`).join('')}</p><div class="prose">${paras(p.body)}</div>${
-        demo ? `<p><a class="btn btn-blue" href="${demo}" target="_blank" rel="noopener">View live demo</a></p>` : ''}` });
+        demo ? `<p><a class="btn btn-blue" href="${demo}" target="_blank" rel="noopener">Lihat demo langsung</a></p>` : ''}` });
   }
   return null;
 }
