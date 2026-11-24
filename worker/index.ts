@@ -187,15 +187,16 @@ async function publicContent(req: Request, env: Env, ctx: ExecutionContext): Pro
   const hit = await cache.match(key);
   if (hit) return hit;
   const q = (t: string, extra = '') => sb(env, `${t}?is_published=eq.true${extra}`).then(r => r.json());
-  const [services, projects, testimonials, clients, st] = await Promise.all([
+  const [services, projects, testimonials, clients, articles, st] = await Promise.all([
     q('services', '&select=title,slug,summary,icon&order=sort_order.asc'),
     q('projects', '&select=title,slug,summary,category,technologies,cover_key,demo_url,featured&order=created_at.desc&limit=12'),
     q('testimonials', '&select=client_name,organization,quote&order=created_at.desc&limit=6'),
     q('clients', '&select=name,logo_key,website_url'),
+    sb(env, 'articles?status=eq.published&select=title,slug,excerpt,cover_key,created_at&order=created_at.desc&limit=6').then(r => (r.ok ? r.json() : [])),
     sb(env, 'site_settings?select=key,value').then(r => r.json()) as Promise<{ key: string; value: unknown }[]>,
   ]);
   const settings = Object.fromEntries((Array.isArray(st) ? st : []).map(x => [x.key, x.value]));
-  const res = json({ services, projects, testimonials, clients, settings }, 200, { 'Cache-Control': 'public, max-age=30, s-maxage=60' });
+  const res = json({ services, projects, testimonials, clients, articles, settings }, 200, { 'Cache-Control': 'public, max-age=30, s-maxage=60' });
   ctx.waitUntil(cache.put(key, res.clone()));
   return res;
 }

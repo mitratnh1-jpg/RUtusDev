@@ -9,24 +9,24 @@ const LBL = { title:'Judul', slug:'Slug (huruf kecil-dan-minus)', summary:'Ringk
   avatar_key:'Foto', name:'Nama', logo_key:'Logo', website_url:'Situs web', notes:'Catatan', website:'Situs web', industry:'Industri', position:'Jabatan', email:'Email',
   whatsapp:'WhatsApp', organization_id:'Organisasi', contact_id:'Kontak', deal_id:'Peluang', value:'Nilai (Rp)', stage:'Tahap', source:'Sumber', expected_close:'Target closing',
   kind:'Jenis', note:'Isi catatan', eyebrow:'Label atas', headline:'Judul utama', headline_dim:'Lanjutan judul', subheadline:'Sub-judul', cta_primary:'Tombol utama', cta_secondary:'Tombol kedua',
-  baru:'Baru', dihubungi:'Dihubungi', discovery:'Discovery', proposal:'Proposal', negosiasi:'Negosiasi', menang:'Menang', kalah:'Kalah',
-  new:'Baru', contacted:'Dihubungi', won:'Menang', lost:'Kalah', draft:'Draft', published:'Terbit', catatan:'Catatan', telepon:'Telepon', rapat:'Rapat',
+  baru:'Baru', dihubungi:'Dihubungi', discovery:'Penjajakan', proposal:'Proposal', negosiasi:'Negosiasi', menang:'Menang', kalah:'Kalah',
+  new:'Baru', contacted:'Dihubungi', won:'Menang', lost:'Kalah', draft:'Draf', published:'Terbit', catatan:'Catatan', telepon:'Telepon', rapat:'Rapat',
   number:'Nomor (kosongkan untuk otomatis)', valid_until:'Berlaku hingga', scope:'Ruang lingkup pekerjaan', terms:'Syarat & ketentuan',
   items:'Rincian — satu baris per item: Deskripsi | Jumlah | Harga satuan (Rp)', issue_date:'Tanggal terbit', due_date:'Jatuh tempo / tenggat', paid_amount:'Sudah dibayar (Rp)',
-  milestone:'Milestone', priority:'Prioritas', terkirim:'Terkirim', disetujui:'Disetujui', ditolak:'Ditolak', draf:'Draf', dibayar_sebagian:'Dibayar sebagian', lunas:'Lunas', batal:'Batal',
+  milestone:'Tonggak', priority:'Prioritas', terkirim:'Terkirim', disetujui:'Disetujui', ditolak:'Ditolak', draf:'Draf', dibayar_sebagian:'Dibayar sebagian', lunas:'Lunas', batal:'Batal',
   todo:'Belum mulai', berjalan:'Berjalan', selesai:'Selesai', rendah:'Rendah', sedang:'Sedang', tinggi:'Tinggi' };
 const L = k => LBL[k] || k;
 const T = {
   ringkasan: { label:'Ringkasan', dash:true },
   leads: { label:'Prospek', title:'name', sub:['email','whatsapp','service_interest','brief'], ro:true,
     f:[['status','select',['new','contacted','discovery','proposal','won','lost']],['notes','textarea']] },
-  pipeline: { label:'Pipeline', pipeline:true },
+  pipeline: { label:'Alur penjualan', pipeline:true },
   deals: { label:'Peluang', title:'title', sub:['stage','value'], f:[['title'],['organization_id','ref','organizations'],['contact_id','ref','contacts'],['value','number'],['stage','select',STAGES],['source'],['expected_close','date'],['notes','textarea']] },
   organizations: { label:'Organisasi', title:'name', sub:['industry','website'], f:[['name'],['website'],['industry'],['notes','textarea']] },
   contacts: { label:'Kontak', title:'name', sub:['position','email','whatsapp'], f:[['name'],['position'],['email'],['whatsapp'],['organization_id','ref','organizations'],['notes','textarea']] },
   interactions: { label:'Riwayat', title:'note', sub:['kind','created_at'], f:[['deal_id','ref','deals'],['kind','select',['catatan','telepon','whatsapp','email','rapat']],['note','textarea']] },
   proposals: { label:'Penawaran', title:'title', sub:['number','status'], print:'proposal', f:[['number'],['title'],['deal_id','ref','deals'],['status','select',['draft','terkirim','disetujui','ditolak']],['valid_until','date'],['items','items'],['scope','textarea'],['terms','textarea']] },
-  invoices: { label:'Invoice', title:'title', sub:['number','status','due_date'], print:'invoice', f:[['number'],['title'],['deal_id','ref','deals'],['organization_id','ref','organizations'],['status','select',['draf','terkirim','dibayar_sebagian','lunas','batal']],['issue_date','date'],['due_date','date'],['items','items'],['paid_amount','number'],['notes','textarea']] },
+  invoices: { label:'Faktur', title:'title', sub:['number','status','due_date'], print:'invoice', f:[['number'],['title'],['deal_id','ref','deals'],['organization_id','ref','organizations'],['status','select',['draf','terkirim','dibayar_sebagian','lunas','batal']],['issue_date','date'],['due_date','date'],['items','items'],['paid_amount','number'],['notes','textarea']] },
   tasks: { label:'Tugas', title:'title', sub:['milestone','status','priority','due_date'], f:[['title'],['deal_id','ref','deals'],['milestone'],['status','select',['todo','berjalan','selesai']],['priority','select',['rendah','sedang','tinggi']],['due_date','date'],['notes','textarea']] },
   services: { label:'Layanan', title:'title', f:[['title'],['slug'],['summary'],['description','textarea'],['icon'],SORT,PUB] },
   projects: { label:'Portofolio', title:'title', f:[['title'],['slug'],['summary'],['body','textarea'],['category'],['technologies'],['cover_key','image'],['demo_url'],['featured','check'],PUB] },
@@ -67,7 +67,7 @@ async function upload(file, alt) {
 const SET = { hero:[['eyebrow'],['headline'],['headline_dim'],['subheadline','textarea'],['cta_primary'],['cta_secondary']], contact:[['whatsapp'],['email']] };
 async function showSettings(m) {
   const rows = await api('settings'), v = Object.fromEntries(rows.map(r => [r.key, r.value]));
-  m.innerHTML = '<h1>Settings</h1><p style="color:var(--dim)">Kosongkan kolom untuk memakai teks bawaan. WhatsApp: angka saja, contoh 628123456789.</p>' + Object.entries(SET).map(([k, fs]) =>
+  m.innerHTML = '<h1>Pengaturan</h1><p style="color:var(--dim)">Kosongkan kolom untuk memakai teks bawaan. WhatsApp: angka saja, contoh 628123456789.</p>' + Object.entries(SET).map(([k, fs]) =>
     `<form data-k="${k}"><b>${k === 'hero' ? 'Hero' : 'Kontak'}</b>${fs.map(([n, ty]) => `<label>${L(n)}${ty === 'textarea' ? `<textarea name="${n}" rows="3">${esc(v[k]?.[n])}</textarea>` : `<input name="${n}" value="${esc(v[k]?.[n])}">`}</label>`).join('')}<div><button>Simpan</button></div><p class="err"></p></form>`).join('');
   m.querySelectorAll('form').forEach(f => f.onsubmit = async e => {
     e.preventDefault(); const o = {}; new FormData(f).forEach((x, n) => o[n] = x); const er = f.querySelector('.err');
@@ -103,7 +103,7 @@ async function showDash(m) {
   const group = (arr, f, lab = x => x) => { const g = {}; arr.forEach(x => { const k = lab(f(x) || '(tanpa data)'); g[k] = (g[k] || 0) + 1; }); return Object.entries(g).sort((a, b) => b[1] - a[1]).slice(0, 6); };
   const hbars = rows => { const max = Math.max(1, ...rows.map(r => r[1])); return rows.length ? rows.map(([k, n]) => `<div class="hb"><span>${esc(k)}</span><i style="width:${Math.max(4, 100 * n / max)}%"></i><b>${n}</b></div>`).join('') : '<p class="dim">Belum ada data.</p>'; };
   const attn = [
-    ...lewat.map(i => ['Invoice lewat jatuh tempo', `${i.number} · sisa ${rp(tot(i) - Number(i.paid_amount || 0))}`]),
+    ...lewat.map(i => ['Faktur lewat jatuh tempo', `${i.number} · sisa ${rp(tot(i) - Number(i.paid_amount || 0))}`]),
     ...tlate.map(t => ['Tugas terlambat', `${t.title} · tenggat ${t.due_date}`]),
     ...stale.map(p => ['Penawaran perlu follow-up', `${p.number} · ${p.title}`])].slice(0, 8);
   m.innerHTML = `<h1>Ringkasan</h1><div class="kpis">${kpi.map(([l, v, s, w]) => `<div class="kpi${w ? ' warn' : ''}"><small>${l}</small><b>${esc(v)}</b><span>${esc(s)}</span></div>`).join('')}</div>
@@ -136,7 +136,7 @@ async function showList(m, t) {
   const rows = await api(cur), refs = {};
   for (const [, ty, o] of t.f) if (ty === 'ref') refs[o] = await api(o);
   m.innerHTML = `<h1>${t.label}</h1>${t.ro ? '' : '<button id="new">+ Tambah</button>'}<div id="form"></div>` + (rows.length ? rows.map(r =>
-    `<div class="row"><div><b>${esc(r[t.title])}</b><small>${esc((t.sub || []).map(k => L(r[k])).filter(Boolean).join(' · ') || (r.is_published === false ? 'Draft' : L(r.status) || ''))}</small></div><div><button class="g" data-e="${r.id}">Edit</button></div></div>`).join('') : '<p>Belum ada data.</p>');
+    `<div class="row"><div><b>${esc(r[t.title])}</b><small>${esc((t.sub || []).map(k => L(r[k])).filter(Boolean).join(' · ') || (r.is_published === false ? 'Draf' : L(r.status) || ''))}</small></div><div><button class="g" data-e="${r.id}">Edit</button></div></div>`).join('') : '<p>Belum ada data.</p>');
   const open = r => form(m.querySelector('#form'), t, r, refs);
   m.onclick = e => { if (e.target.id === 'new') open({}); const id = e.target.dataset.e; if (id) { open(rows.find(r => r.id === id)); scrollTo(0, 0); } };
 }
@@ -161,7 +161,7 @@ function form(box, t, r, refs = {}) {
   };
   const pr = f.querySelector('#prn'); if (pr) pr.onclick = () => window.open(`cetak.html?t=${t.print}&id=${r.id}`, '_blank');
   const cv = f.querySelector('#conv');
-  if (cv) cv.onclick = async () => { try { await api(`leads/${r.id}/convert`, { method:'POST' }); alert('Prospek dijadikan peluang (status: Baru). Lihat di tab Pipeline.'); show(); } catch (x) { err.textContent = x.message; } };
+  if (cv) cv.onclick = async () => { try { await api(`leads/${r.id}/convert`, { method:'POST' }); alert('Prospek dijadikan peluang (status: Baru). Lihat di tab Alur penjualan.'); show(); } catch (x) { err.textContent = x.message; } };
   const d = f.querySelector('#del'); if (d) d.onclick = async () => { if (confirm('Hapus data ini?')) { await api(`${cur}/${r.id}`, { method:'DELETE' }); show(); } };
 }
 if (tok) start();

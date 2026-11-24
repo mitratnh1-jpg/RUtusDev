@@ -2,8 +2,9 @@ export type Hero = { eyebrow?: string; headline?: string; headline_dim?: string;
 export type Service = { title: string; summary?: string };
 export type Project = { title: string; slug?: string; summary?: string; category?: string; technologies?: string[]; cover_key?: string; demo_url?: string };
 export type Testimonial = { client_name: string; organization?: string; quote: string };
+export type Article = { title: string; slug?: string; excerpt?: string; cover_key?: string; created_at?: string };
 export type Content = {
-  services: Service[]; projects: Project[]; testimonials: Testimonial[];
+  services: Service[]; projects: Project[]; testimonials: Testimonial[]; articles?: Article[];
   settings: { hero?: Hero; contact?: { whatsapp?: string; email?: string } };
 };
 declare global {

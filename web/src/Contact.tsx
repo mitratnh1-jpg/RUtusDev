@@ -31,15 +31,15 @@ export default function Contact({ wa, email }: { wa: string; email: string }) {
   }
 
   return (
-    <section className="dark" id="contact">
+    <section className="dark contact-s" id="contact" data-nav="dark">
       <div className="wrap contact">
         <div>
           <p className="pill pill-dark">Kontak</p>
-          <h2>Ceritakan apa yang ingin Anda bangun.</h2>
+          <h2><b>Ceritakan apa yang ingin Anda bangun.</b></h2>
           <p className="lead">Kami balas dalam 1×24 jam kerja.</p>
           <p className="links">
-            <a href={`https://wa.me/${wa}?text=${encodeURIComponent('Halo RUtusdev, saya ingin konsultasi proyek.')}`}>WhatsApp &gt;</a>
-            <a href={`mailto:${email}`}>{email} &gt;</a>
+            <a href={`https://wa.me/${wa}?text=${encodeURIComponent('Halo RUtusdev, saya ingin konsultasi proyek.')}`}>WhatsApp <i>→</i></a>
+            <a href={`mailto:${email}`}>{email} <i>→</i></a>
           </p>
         </div>
         <form onSubmit={submit} noValidate>

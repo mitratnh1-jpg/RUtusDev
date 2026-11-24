@@ -12,7 +12,7 @@ const api = async p => { const r = await fetch('/api/admin/' + p, { headers:{ Au
     const contact = (st.find(x => x.key === 'contact') || {}).value || {};
     const items = d.items || [], total = items.reduce((a, x) => a + x.qty * x.price, 0), inv = type === 'invoice';
     el.innerHTML = `<div class="top"><div class="logo">RUtusdev<span>.</span><p style="font:12px Inter;color:#6b6f7b">Studio pengembangan digital</p></div>
-      <div class="doc"><h1>${inv ? 'INVOICE' : 'PENAWARAN'}</h1><div>${esc(d.number)}</div></div></div>
+      <div class="doc"><h1>${inv ? 'FAKTUR' : 'PENAWARAN'}</h1><div>${esc(d.number)}</div></div></div>
       <div class="meta"><div><small>Ditujukan kepada</small><b>${esc(org.name || con.name || '-')}</b><br>${esc(org.name && con.name ? 'u.p. ' + con.name : '')}${con.email ? '<br>' + esc(con.email) : ''}</div>
       <div>${inv ? `<small>Tanggal terbit</small>${tgl(d.issue_date)}<br><small>Jatuh tempo</small>${tgl(d.due_date)}` : `<small>Tanggal</small>${tgl(d.created_at)}<br><small>Berlaku hingga</small>${tgl(d.valid_until)}`}</div></div>
       <h3>${esc(d.title)}</h3>
@@ -22,6 +22,6 @@ const api = async p => { const r = await fetch('/api/admin/' + p, { headers:{ Au
         ${inv ? `<tr class="tot"><td colspan="4" class="r">Sudah dibayar</td><td class="r">${rp(d.paid_amount)}</td></tr><tr class="tot"><td colspan="4" class="r">Sisa tagihan</td><td class="r">${rp(Math.max(0, total - Number(d.paid_amount || 0)))}</td></tr>` : ''}</table>
       ${inv ? (d.notes ? `<h3>Catatan pembayaran</h3><p>${esc(d.notes)}</p>` : '') : `${d.scope ? `<h3>Ruang lingkup pekerjaan</h3><p>${esc(d.scope)}</p>` : ''}${d.terms ? `<h3>Syarat &amp; ketentuan</h3><p>${esc(d.terms)}</p>` : ''}`}
       <div class="foot">RUtusdev${contact.email ? ' · ' + esc(contact.email) : ''}${contact.whatsapp ? ' · WhatsApp ' + esc(contact.whatsapp) : ''}</div>`;
-    document.title = (inv ? 'Invoice ' : 'Penawaran ') + d.number;
+    document.title = (inv ? 'Faktur ' : 'Penawaran ') + d.number;
   } catch (e) { el.innerHTML = `<p class="err">${esc(e.message)}</p>`; }
 })();

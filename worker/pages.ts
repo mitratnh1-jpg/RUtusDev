@@ -40,11 +40,11 @@ function layout(origin: string, p: Page): Response {
 <meta property="og:description" content="${esc(p.desc)}"><meta property="og:url" content="${esc(url)}">${img ? `<meta property="og:image" content="${img}">` : ''}
 <meta name="twitter:card" content="${img ? 'summary_large_image' : 'summary'}">${p.status === 404 ? '<meta name="robots" content="noindex">' : ''}
 <link rel="preconnect" href="https://fonts.googleapis.com"><link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-<link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500&family=JetBrains+Mono:wght@400;500&family=Space+Grotesk:wght@300;400;500;700&display=swap" rel="stylesheet">
+<link href="https://fonts.googleapis.com/css2?family=Hanken+Grotesk:wght@300;400;500;600;800&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
 <link rel="stylesheet" href="/styles.css">${p.ld ? ld(p.ld) : ''}</head><body>
-<header class="nav"><a class="logo" href="/">RUtusdev<span>.</span></a><nav class="nav-links" style="display:flex"><a href="/#services">Layanan</a><a href="/#work">Karya</a><a href="/articles">Artikel</a><a href="/#contact">Kontak</a></nav></header>
+<header class="nav"><a class="logo" href="/"><svg class="mark" viewBox="0 0 24 24" aria-hidden="true"><rect x="2" y="13" width="6" height="6" rx="1.5"/><rect x="9" y="13" width="6" height="6" rx="1.5"/><rect x="16" y="13" width="6" height="6" rx="1.5"/><rect x="9" y="5" width="6" height="6" rx="1.5"/></svg>RUtusdev</a><nav class="nav-links"><a href="/#services">Layanan</a><a href="/#work">Karya</a><a href="/articles">Artikel</a><a href="/#contact">Kontak</a></nav><div class="nav-actions"><a class="btn btn-ghost" href="/articles">Artikel</a><a class="btn btn-blue" href="/#contact">Hubungi kami</a></div></header>
 <main class="doc"><div class="wrap">${p.body}</div></main>
-<footer class="foot dark"><div class="wrap"><a class="logo" href="/">RUtusdev<span>.</span></a><p>Create. Build. Deploy.</p></div></footer></body></html>`;
+<footer class="foot dark"><div class="wrap"><a class="logo" href="/">RUtusdev</a><p>Rancang. Bangun. Luncurkan.</p></div></footer></body></html>`;
   return new Response(html, { status: p.status || 200, headers: { 'Content-Type': 'text/html; charset=utf-8',
     'Cache-Control': p.status === 404 ? 'no-store' : 'public, max-age=60, s-maxage=300' } });
 }

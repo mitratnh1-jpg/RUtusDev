@@ -20,7 +20,7 @@ Struktur:
        npx wrangler secret put TURNSTILE_SECRET
        npx wrangler secret put SUPABASE_SERVICE_ROLE_KEY
 4. Lokal: salin `.dev.vars.example` → `.dev.vars`, lalu `npm i && npm run build && npm run dev:api (terminal 1), npm run dev (terminal 2, proxy ke API)`.
-5. Deploy: `npm run deploy`.
+5. Rilis: `npm run deploy`. Di Cloudflare (Workers Builds), `bun install` otomatis membangun `web/dist` lewat skrip `postinstall`, jadi perintah deploy cukup `npx wrangler deploy`.
 
 ## Keamanan yang sudah diterapkan
 Service-role key hanya di secret Worker • RLS deny-by-default • validasi & batas ukuran di server •
