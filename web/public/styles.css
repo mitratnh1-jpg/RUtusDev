@@ -662,3 +662,16 @@ button:focus-visible, a:focus-visible {
   /* judul section: garis biru memanjang */
   section:not(.hero) h2{position:relative}
 }
+
+/* Seksi Teknologi & Paket (turunan Process) */
+.dark.sub{padding:72px 0;border-top:1px solid #1d1d21}
+.dark.sub .chips{margin-top:28px}
+.dark.sub .term-row{margin-top:24px}
+.steps+.row{margin-top:40px;align-items:center;gap:22px}
+/* Logo klien */
+.cl-grid{list-style:none;padding:0;display:grid;grid-template-columns:repeat(auto-fill,minmax(150px,1fr));gap:12px;margin-top:40px}
+.cl-grid li{display:flex;align-items:center;justify-content:center;height:96px;padding:18px 22px;background:#fff;border:1px solid var(--line);border-radius:10px}
+.cl-grid a{display:flex;width:100%;height:100%;align-items:center;justify-content:center}
+.cl-grid img{max-width:100%;max-height:100%;object-fit:contain;filter:grayscale(1);opacity:.7;transition:filter .2s,opacity .2s}
+.cl-grid li:hover img,.cl-grid a:focus-visible img{filter:none;opacity:1}
+.doc .cta{margin-top:32px}

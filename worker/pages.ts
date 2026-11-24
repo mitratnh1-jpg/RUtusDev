@@ -63,11 +63,12 @@ export async function pages(req: Request, env: Env, path: string): Promise<Respo
     return new Response(`User-agent: *\nAllow: /\nDisallow: /admin/\nDisallow: /api/\n\nSitemap: ${origin}/sitemap.xml\n`, { headers: { 'Content-Type': 'text/plain' } });
 
   if (path === '/sitemap.xml') {
-    const [a, p] = await Promise.all([get(env, 'articles?status=eq.published&select=slug,created_at'), get(env, 'projects?is_published=eq.true&select=slug,created_at')]);
+    const [a, p, sv] = await Promise.all([get(env, 'articles?status=eq.published&select=slug,created_at'), get(env, 'projects?is_published=eq.true&select=slug,created_at'), get(env, 'services?is_published=eq.true&select=slug,created_at')]);
     const u = (loc: string, d?: string) => `<url><loc>${esc(origin + loc)}</loc>${d ? `<lastmod>${d.slice(0, 10)}</lastmod>` : ''}</url>`;
     const xml = `<?xml version="1.0" encoding="UTF-8"?><urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">${u('/')}${u('/articles')}` +
       a.filter((x: any) => SLUG.test(x.slug || '')).map((x: any) => u('/articles/' + x.slug, x.created_at)).join('') +
-      p.filter((x: any) => SLUG.test(x.slug || '')).map((x: any) => u('/work/' + x.slug, x.created_at)).join('') + '</urlset>';
+      p.filter((x: any) => SLUG.test(x.slug || '')).map((x: any) => u('/work/' + x.slug, x.created_at)).join('') +
+      sv.filter((x: any) => SLUG.test(x.slug || '')).map((x: any) => u('/services/' + x.slug, x.created_at)).join('') + '</urlset>';
     return new Response(xml, { headers: { 'Content-Type': 'application/xml', 'Cache-Control': 'public, max-age=300' } });
   }
 
@@ -78,10 +79,18 @@ export async function pages(req: Request, env: Env, path: string): Promise<Respo
         `<a class="item" href="/articles/${x.slug}"><small>${esc((x.created_at || '').slice(0, 10))}</small><h2>${esc(x.title)}</h2><p>${esc(x.excerpt)}</p></a>`).join('') : '<p>Belum ada artikel.</p>'}</div>` });
   }
 
-  const m = path.match(/^\/(articles|work)\/([^/]+)$/);
+  const m = path.match(/^\/(articles|work|services)\/([^/]+)$/);
   if (m) {
     const [, kind, slug] = m;
     if (!SLUG.test(slug)) return notFound(origin);
+    if (kind === 'services') {
+      const [sv] = await get(env, `services?slug=eq.${slug}&is_published=eq.true&select=title,slug,summary,description,created_at&limit=1`);
+      if (!sv) return notFound(origin);
+      return layout(origin, { title: `${sv.title} — Layanan | RUtusdev`, desc: sv.summary || sv.title, path,
+        ld: { '@context': 'https://schema.org', '@type': 'Service', name: sv.title, description: sv.summary, provider: { '@type': 'Organization', name: 'RUtusdev' } },
+        body: `<p><a href="/#services">← Layanan</a></p><h1>${esc(sv.title)}</h1><p class="lead">${esc(sv.summary)}</p><div class="prose">${paras(sv.description)}</div>` +
+          `<p class="cta"><a class="btn btn-blue" href="/#contact">Minta penawaran</a></p>` });
+    }
     if (kind === 'articles') {
       const [a] = await get(env, `articles?slug=eq.${slug}&status=eq.published&select=*&limit=1`);
       if (!a) return notFound(origin);

@@ -5,7 +5,7 @@ import Deck from './Deck';
 import Reveal from './Reveal';
 import { onScrollFrame, clamp, reducedMotion } from './scroll';
 import { useContent } from './useContent';
-import type { Article, Project, Stats, Testimonial } from './types';
+import type { Article, Client, Project, Service, Stats, Testimonial } from './types';
 
 const STEPS = [
   ['Konsultasi', 'Positioning, layanan, struktur halaman, dan konten.'], ['Desain', 'Design token, komponen, dan prototipe responsif.'],
@@ -35,7 +35,7 @@ function Mark() {
 function Nav() {
   const [open, setOpen] = useState(false);
   const [theme, setTheme] = useState('dark');
-  const links: [string, string][] = [['#services', 'Layanan'], ['#work', 'Karya'], ['#process', 'Proses'], ['#packages', 'Paket'], ['#articles', 'Artikel'], ['#contact', 'Kontak']];
+  const links: [string, string][] = [['#services', 'Layanan'], ['#work', 'Karya'], ['#process', 'Proses'], ['#technology', 'Teknologi'], ['#packages', 'Paket'], ['#articles', 'Artikel'], ['#contact', 'Kontak']];
   useEffect(() => {
     const els = Array.from(document.querySelectorAll<HTMLElement>('[data-nav]'));
     return onScrollFrame(() => {
@@ -91,7 +91,7 @@ function Hero({ h }: { h: { eyebrow?: string; headline?: string; headline_dim?: 
   );
 }
 
-function Services({ items }: { items: { title: string; summary?: string }[] }) {
+function Services({ items }: { items: Service[] }) {
   return (
     <section className="light" id="services" data-nav="light">
       <div className="wrap">
@@ -103,7 +103,7 @@ function Services({ items }: { items: { title: string; summary?: string }[] }) {
         <div className="panel">
           {items.length ? items.map(s => (
             <article className="cell" key={s.title}><h3>{s.title}</h3><p>{s.summary}</p>
-              <p className="links"><a href="#contact">Minta penawaran <i>→</i></a></p></article>
+              <p className="links">{s.slug && SLUG.test(s.slug) && <a href={`/services/${s.slug}`}>Lihat detail <i>→</i></a>}<a href="#contact">Minta penawaran <i>→</i></a></p></article>
           )) : (<>
             <article className="cell">
               <Deck variant="web" />
@@ -233,29 +233,67 @@ function Ticker({ stats }: { stats?: Stats }) {
 }
 
 function Process() {
-  const [copied, setCopied] = useState(false);
-  const [pk, setPk] = useState(1);
-  const copy = () => { navigator.clipboard?.writeText('npm create rutusdev@latest'); setCopied(true); setTimeout(() => setCopied(false), 1500); };
-  const P = PACKAGES[pk];
   return (
     <section className="dark" id="process" data-nav="dark">
       <div className="wrap">
         <p className="pill pill-dark">Proses</p>
         <h2><b>Dari konsultasi pertama sampai peluncuran.</b><br /><span>Dan perawatan setelahnya.</span></h2>
         <p className="lead">Satu alur kerja lengkap: dari lembar kosong menjadi aplikasi yang berjalan, dengan standar terbuka yang mudah dirawat.</p>
-        <div className="seg" role="tablist" id="packages">
+        <ol className="steps">{STEPS.map(([b, p]) => <li key={b}><b>{b}</b><p>{p}</p></li>)}</ol>
+        <div className="row"><a className="btn btn-blue" href="#contact">Mulai konsultasi</a><a className="mlink" href="#work">LIHAT KARYA <i>→</i></a></div>
+      </div>
+    </section>
+  );
+}
+
+function Technology() {
+  const [copied, setCopied] = useState(false);
+  const copy = () => { navigator.clipboard?.writeText('npm create rutusdev@latest'); setCopied(true); setTimeout(() => setCopied(false), 1500); };
+  return (
+    <section className="dark sub" id="technology" data-nav="dark">
+      <div className="wrap">
+        <p className="pill pill-dark">Teknologi</p>
+        <h2><b>Stack modern, standar terbuka.</b><br /><span>Cepat, aman, dan mudah dirawat.</span></h2>
+        <p className="chips">{STACK.map(s => <span key={s}>{s}</span>)}</p>
+        <div className="row term-row">
+          <div className="term"><code><u>$</u> npm create rutusdev@latest</code><button onClick={copy} aria-label="Salin perintah">{copied ? 'Tersalin' : 'Salin'}</button></div>
+        </div>
+      </div>
+    </section>
+  );
+}
+
+function Packages() {
+  const [pk, setPk] = useState(1);
+  const P = PACKAGES[pk];
+  return (
+    <section className="dark sub" id="packages" data-nav="dark">
+      <div className="wrap">
+        <p className="pill pill-dark">Paket</p>
+        <h2><b>Pilih paket sesuai kebutuhan.</b><br /><span>Bisa disesuaikan setelah diskusi.</span></h2>
+        <div className="seg" role="tablist">
           {PACKAGES.map((x, i) => <button key={x.n} role="tab" aria-selected={i === pk} className={i === pk ? 'on' : ''} onClick={() => setPk(i)}>{x.n}</button>)}
         </div>
         <div className="pkg"><p className="price">{P.pr}</p><p>{P.d}</p></div>
         <div className="row"><a className="btn btn-blue" href="#contact">Pilih paket {P.n}</a><a className="btn btn-ghost" href="#contact">Minta penawaran</a></div>
         <p className="small">Paket bersifat indikatif. Harga ditentukan setelah diskusi kebutuhan.</p>
-        <div className="row term-row">
-          <div className="term"><code><u>$</u> npm create rutusdev@latest</code><button onClick={copy} aria-label="Salin perintah">{copied ? 'Tersalin' : 'Salin'}</button></div>
-          <a className="mlink" href="#work">LIHAT KARYA <i>→</i></a>
-        </div>
-        <ol className="steps">{STEPS.map(([b, p]) => <li key={b}><b>{b}</b><p>{p}</p></li>)}</ol>
-        <h3 className="stack-h">Stack yang kami pakai</h3>
-        <p className="chips">{STACK.map(s => <span key={s}>{s}</span>)}</p>
+      </div>
+    </section>
+  );
+}
+
+function Clients({ items }: { items: Client[] }) {
+  const list = items.filter(c => c.logo_key && COVER.test(c.logo_key));
+  if (!list.length) return null;
+  return (
+    <section className="light clients" id="clients" data-nav="light">
+      <div className="wrap">
+        <p className="pill">Klien</p>
+        <h2><b>Dipercaya oleh</b> <span>tim dan bisnis yang kami dampingi.</span></h2>
+        <ul className="cl-grid">{list.map(c => {
+          const url = httpUrl(c.website_url), img = <img loading="lazy" src={`/media/${c.logo_key}`} alt={c.name} />;
+          return <li key={c.name}>{url ? <a href={url} target="_blank" rel="noopener noreferrer" aria-label={c.name}>{img}</a> : img}</li>;
+        })}</ul>
       </div>
     </section>
   );
@@ -346,7 +384,10 @@ export default function App() {
         <Work items={c?.projects ?? []} />
         <Trust t={testi} stats={s?.stats} />
         <Ticker stats={s?.stats} />
+        <Clients items={c?.clients ?? []} />
         <Process />
+        <Technology />
+        <Packages />
         <Articles items={c?.articles ?? []} />
         <Contact wa={wa} email={email} />
       </main>
