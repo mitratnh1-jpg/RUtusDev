@@ -1,5 +1,6 @@
 import { useEffect, useRef, useState, type CSSProperties, type KeyboardEvent, type PointerEvent as RPE } from 'react';
 import CodeRain from './CodeRain';
+import { onScrollFrame, clamp, reducedMotion } from './scroll';
 
 type Variant = 'web' | 'app';
 const LAYERS: Record<Variant, string[]> = { web: ['Website', 'Landing page', 'Aplikasi'], app: ['CRM', 'Dashboard', 'Faktur'] };
@@ -36,16 +37,8 @@ export default function Deck({ variant }: { variant: Variant }) {
 
   useEffect(() => {
     const el = root.current!;
-    if (matchMedia('(prefers-reduced-motion: reduce)').matches) { el.style.setProperty('--p', '1'); return; }
-    let raf = 0;
-    const f = () => {
-      raf = 0;
-      const r = el.getBoundingClientRect(), vh = innerHeight;
-      el.style.setProperty('--p', Math.max(0, Math.min(1, (vh - r.top) / (vh * 0.85))).toFixed(3));
-    };
-    const on = () => { if (!raf) raf = requestAnimationFrame(f); };
-    f(); addEventListener('scroll', on, { passive: true }); addEventListener('resize', on);
-    return () => { cancelAnimationFrame(raf); removeEventListener('scroll', on); removeEventListener('resize', on); };
+    if (reducedMotion()) { el.style.setProperty('--p', '1'); return; }
+    return onScrollFrame((_, vh) => { el.style.setProperty('--p', clamp((vh - el.getBoundingClientRect().top) / (vh * 0.85)).toFixed(3)); });
   }, []);
 
   const toBack = (dir: number) => {

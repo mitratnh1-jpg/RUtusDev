@@ -10,9 +10,10 @@ export default function CodeRain({ seed = 0 }: { seed?: number }) {
     const c = ref.current!, g = c.getContext('2d')!, box = c.parentElement!;
     const reduce = matchMedia('(prefers-reduced-motion: reduce)').matches;
     const CW = 5.6, CH = 9.5;
-    let w = 0, h = 0, cols = 0, rows = 0, raf = 0, last = 0, vis = true;
+    let w = 0, h = 0, cols = 0, rows = 0, raf = 0, last = 0, vis = true, lastW = 0;
     const m = { x: -1, y: -1 };
     const size = () => {
+      lastW = c.offsetWidth;
       const dpr = Math.min(devicePixelRatio || 1, 2);
       w = c.offsetWidth; h = c.offsetHeight; c.width = w * dpr; c.height = h * dpr; g.setTransform(dpr, 0, 0, dpr, 0, 0);
       cols = Math.ceil(w / CW); rows = Math.ceil(h / CH); g.font = `${CH - 1}px "JetBrains Mono", monospace`; g.textBaseline = 'top';
@@ -41,12 +42,13 @@ export default function CodeRain({ seed = 0 }: { seed?: number }) {
         }
       }
     };
+    const rs = () => { if (c.offsetWidth !== lastW) size(); };
     const move = (e: PointerEvent) => { const b = c.getBoundingClientRect(); m.x = (e.clientX - b.left) / b.width; m.y = (e.clientY - b.top) / b.height; if (reduce) draw(performance.now()); };
     const leave = () => { m.x = m.y = -1; };
     const io = new IntersectionObserver(([e]) => { vis = e.isIntersecting; }, { threshold: 0 });
-    io.observe(box); box.addEventListener('pointermove', move); box.addEventListener('pointerleave', leave); addEventListener('resize', size);
+    io.observe(box); box.addEventListener('pointermove', move); box.addEventListener('pointerleave', leave); addEventListener('resize', rs);
     size(); raf = requestAnimationFrame(draw);
-    return () => { cancelAnimationFrame(raf); io.disconnect(); box.removeEventListener('pointermove', move); box.removeEventListener('pointerleave', leave); removeEventListener('resize', size); };
+    return () => { cancelAnimationFrame(raf); io.disconnect(); box.removeEventListener('pointermove', move); box.removeEventListener('pointerleave', leave); removeEventListener('resize', rs); };
   }, [seed]);
   return <canvas className="rain" ref={ref} aria-hidden="true" />;
 }

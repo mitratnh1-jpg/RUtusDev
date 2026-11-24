@@ -607,3 +607,39 @@ button:focus-visible, a:focus-visible {
 .hint.gone{opacity:0}
 .cell:has(.deck){overflow:hidden}
 @media (prefers-reduced-motion:reduce){.dk{transition:none}.bars i,.typer u{animation:none}}
+
+/* =========================================================
+   Scroll halus: sudut membulat → kotak, teks masuk, tanpa jank
+   ========================================================= */
+/* Sudut dibuat dari potongan kecil yang diskalakan (hanya transform → berjalan di GPU, tanpa repaint) */
+.hero{border-radius:0}
+.blue{border-radius:0;position:relative}
+.corners{position:absolute;left:0;right:0;height:28px;pointer-events:none;z-index:3;--s:1}
+.corners::before,.corners::after{content:"";position:absolute;width:28px;height:28px;transform:scale(var(--s));will-change:transform}
+.corners.bottom{bottom:-1px}
+.corners.bottom::before{left:0;transform-origin:0 100%;background:radial-gradient(circle at 100% 0,transparent 27px,var(--bg) 28px)}
+.corners.bottom::after{right:0;transform-origin:100% 100%;background:radial-gradient(circle at 0 0,transparent 27px,var(--bg) 28px)}
+.corners.top{top:-1px}
+.corners.top::before{left:0;transform-origin:0 0;background:radial-gradient(circle at 100% 100%,transparent 27px,var(--sand) 28px)}
+.corners.top::after{right:0;transform-origin:100% 0;background:radial-gradient(circle at 0 100%,transparent 27px,var(--sand) 28px)}
+
+/* Animasi masuk hero tidak lagi "menahan" transform, sehingga bisa digeser mengikuti scroll */
+.hero .hero-in,.hero .logos{animation-fill-mode:backwards;will-change:transform,opacity}
+#dots{will-change:transform}
+
+/* Buang efek yang mahal di GPU HP */
+.hero::before{filter:none;animation:none;box-shadow:none}
+.hero::after{filter:none}
+.tag{backdrop-filter:none;-webkit-backdrop-filter:none;background:rgba(22,22,26,.85)}
+.nav{backdrop-filter:blur(10px);-webkit-backdrop-filter:blur(10px);transform:translateZ(0)}
+.dscroll,.atrack{overscroll-behavior-x:contain}
+
+/* Teks "meluncur masuk" saat bagian memasuki layar (hanya di browser yang mendukung) */
+@keyframes text-slide{from{opacity:0;transform:translate3d(0,26px,0)}to{opacity:1;transform:translate3d(0,0,0)}}
+@supports (animation-timeline:view()){
+  @media (prefers-reduced-motion:no-preference){
+    section:not(.hero) .pill,section:not(.hero) h2,section:not(.hero) .lead,section:not(.hero) .links:not(.cell .links){
+      animation:text-slide linear both;animation-timeline:view();animation-range:entry 5% entry 45%}
+    section:not(.hero) .lead{animation-range:entry 12% entry 52%}
+  }
+}

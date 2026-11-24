@@ -2,6 +2,7 @@ import { useEffect, useRef, useState } from 'react';
 import Dots from './Dots';
 import Contact from './Contact';
 import Deck from './Deck';
+import { onScrollFrame, clamp, reducedMotion } from './scroll';
 import { useContent } from './useContent';
 import type { Article, Project, Testimonial } from './types';
 
@@ -39,13 +40,12 @@ function Nav() {
   const [theme, setTheme] = useState('dark');
   const links: [string, string][] = [['#services', 'Layanan'], ['#work', 'Karya'], ['#process', 'Proses'], ['#packages', 'Paket'], ['#articles', 'Artikel'], ['#contact', 'Kontak']];
   useEffect(() => {
-    const f = () => {
+    const els = Array.from(document.querySelectorAll<HTMLElement>('[data-nav]'));
+    return onScrollFrame(() => {
       let t = 'dark';
-      document.querySelectorAll<HTMLElement>('[data-nav]').forEach(e => { const r = e.getBoundingClientRect(); if (r.top <= 36 && r.bottom > 36) t = e.dataset.nav || 'dark'; });
+      for (const e of els) { const r = e.getBoundingClientRect(); if (r.top <= 36 && r.bottom > 36) t = e.dataset.nav || 'dark'; }
       setTheme(t);
-    };
-    f(); addEventListener('scroll', f, { passive: true }); addEventListener('resize', f);
-    return () => { removeEventListener('scroll', f); removeEventListener('resize', f); };
+    });
   }, []);
   return (
     <header className={`nav nav-${theme}${open ? ' is-open' : ''}`}>
@@ -63,8 +63,25 @@ function Nav() {
 }
 
 function Hero({ h }: { h: { eyebrow?: string; headline?: string; headline_dim?: string; subheadline?: string; cta_primary?: string; cta_secondary?: string } }) {
+  const root = useRef<HTMLElement>(null);
+  useEffect(() => {
+    const el = root.current!;
+    if (reducedMotion()) return;
+    const body = el.querySelector<HTMLElement>('.hero-in')!, logos = el.querySelector<HTMLElement>('.logos')!, dots = el.querySelector<HTMLElement>('#dots')!;
+    const tags = el.querySelectorAll<HTMLElement>('.tag'), corners = el.querySelector<HTMLElement>('.corners')!;
+    return onScrollFrame(y => {
+      const hp = clamp(y / (el.offsetHeight * 0.55));
+      // teks "masuk" ke atas sambil memudar; titik bergerak lebih lambat (paralaks)
+      body.style.transform = `translate3d(0,${(-hp * 70).toFixed(1)}px,0)`; body.style.opacity = String(clamp(1 - hp * 1.25));
+      logos.style.transform = `translate3d(0,${(-hp * 28).toFixed(1)}px,0)`; logos.style.opacity = String(clamp(1 - hp * 0.7));
+      dots.style.transform = `translate3d(0,${(hp * 60).toFixed(1)}px,0)`;
+      tags.forEach(t => { t.style.opacity = String(clamp(1 - hp * 2)); });
+      // sudut bawah yang membulat menjadi kotak saat halaman digulir
+      corners.style.setProperty('--s', String(clamp(1 - y / 170)));
+    });
+  }, []);
   return (
-    <section className="hero" data-nav="dark">
+    <section className="hero" data-nav="dark" ref={root}>
       <Dots />
       {['Website', 'CMS', 'API', 'CRM'].map((t, i) => <span key={t} className={'tag t' + (i + 1)} aria-hidden="true">{t}</span>)}
       <div className="wrap hero-in">
@@ -74,6 +91,7 @@ function Hero({ h }: { h: { eyebrow?: string; headline?: string; headline_dim?: 
         <div className="row"><a className="btn btn-blue" href="#work">{h.cta_primary || 'Lihat karya'}</a><a className="btn btn-ghost" href="#contact">{h.cta_secondary || 'Jadwalkan konsultasi'}</a></div>
       </div>
       <div className="logos wrap">{['Cloudflare', 'Supabase', 'React', 'TypeScript', 'PostgreSQL'].map(x => <span key={x}>{x}</span>)}</div>
+      <i className="corners bottom" aria-hidden="true" />
     </section>
   );
 }
@@ -172,8 +190,15 @@ function Quote({ x }: { x: Testimonial }) {
 }
 
 function Trust({ t }: { t: Testimonial[] }) {
+  const root = useRef<HTMLElement>(null);
+  useEffect(() => {
+    const el = root.current!, cr = el.querySelector<HTMLElement>('.corners')!;
+    if (reducedMotion()) { cr.style.setProperty('--s', '1'); return; }
+    return onScrollFrame((_, vh) => { cr.style.setProperty('--s', String(clamp(el.getBoundingClientRect().top / (vh * 0.45)))); });
+  }, []);
   return (
-    <section className="blue" id="trust" data-nav="blue">
+    <section className="blue" id="trust" data-nav="blue" ref={root}>
+      <i className="corners top" aria-hidden="true" />
       <div className="wrap">
         <p className="pill pill-blue">Bersama klien</p>
         <h2><b>Fondasi tepercaya untuk proyek klien dari berbagai skala.</b></h2>
