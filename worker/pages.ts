@@ -57,7 +57,7 @@ function layout(origin: string, p: Page): Response {
 <main class="doc"><div class="wrap">${p.body}</div></main>
 <footer class="foot dark"><div class="wrap"><a class="logo" href="/">RUtusdev</a><p>Rancang. Bangun. Luncurkan.</p></div></footer>${beacon()}</body></html>`;
   return new Response(html, { status: p.status || 200, headers: { 'Content-Type': 'text/html; charset=utf-8',
-    'Cache-Control': p.status === 404 ? 'no-store' : 'public, max-age=60, s-maxage=300' } });
+    'Cache-Control': p.status === 404 ? 'no-store' : 'public, max-age=0, must-revalidate' } });
 }
 const notFound = (o: string) => layout(o, { title: 'Halaman tidak ditemukan — RUtusdev', desc: 'Halaman tidak ditemukan.', path: '/404', status: 404,
   body: '<h1>Halaman tidak ditemukan</h1><p class="lead">Kembali ke <a href="/">beranda</a> atau lihat <a href="/articles">artikel</a>.</p>' });
@@ -83,7 +83,7 @@ export async function pages(req: Request, env: Env, path: string): Promise<Respo
   if (path === '/articles') {
     // Paginasi: 12 artikel per halaman (?page=N). Mengambil satu baris ekstra untuk tahu apakah masih ada halaman berikutnya.
     const per = 12, pg = Math.max(1, Math.min(1000, Math.floor(Number(new URL(req.url).searchParams.get('page'))) || 1));
-    const all = await get(env, `articles?status=eq.published&select=title,slug,excerpt,created_at&order=created_at.desc&limit=${per + 1}&offset=${(pg - 1) * per}`);
+    const all = await get(env, `articles?status=eq.published&slug=not.is.null&select=title,slug,excerpt,created_at&order=created_at.desc&limit=${per + 1}&offset=${(pg - 1) * per}`);
     const more = all.length > per, a = all.slice(0, per);
     if (pg > 1 && !a.length) return notFound(origin);
     const pager = pg > 1 || more ? `<nav class="pager" aria-label="Halaman artikel">${pg > 1 ? `<a rel="prev" href="${pg === 2 ? '/articles' : '/articles?page=' + (pg - 1)}">← Lebih baru</a>` : '<span></span>'}<small>Halaman ${pg}</small>${more ? `<a rel="next" href="/articles?page=${pg + 1}">Lebih lama →</a>` : '<span></span>'}</nav>` : '';

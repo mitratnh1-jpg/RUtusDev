@@ -380,21 +380,31 @@ const REVEAL = '.cell,.dcard,.qcard,.stat,.art,.sealcard,.steps li,.acard,.seg,.
 function useReveal(dep: unknown) {
   useEffect(() => {
     if (reducedMotion() || !('IntersectionObserver' in window)) return;
-    const els = Array.from(document.querySelectorAll<HTMLElement>(REVEAL)).filter(e => !e.classList.contains('rv'));
+    // PENTING: efek ini jalan ulang saat konten CMS selesai dimuat. Elemen yang sudah diberi kelas `rv` tetapi belum tampil
+    // HARUS diamati lagi (observer lama sudah diputus); bila dilewati, elemen itu tertahan transparan selamanya (landing "blank").
+    // `data-rvd` menandai elemen yang sudah selesai ditampilkan agar tidak disembunyikan ulang.
+    const els = Array.from(document.querySelectorAll<HTMLElement>(REVEAL)).filter(e => e.dataset.rvd !== '1');
+    const timers: number[] = [];
+    const show = (t: HTMLElement) => {
+      t.classList.add('in'); t.dataset.rvd = '1';
+      timers.push(window.setTimeout(() => t.classList.remove('rv', 'in'), 1100 + Number(t.style.getPropertyValue('--i') || 0) * 90));
+    };
     const io = new IntersectionObserver(es => {
-      es.forEach(e => {
-        if (!e.isIntersecting) return;
-        const t = e.target as HTMLElement; io.unobserve(t);
-        t.classList.add('in');
-        setTimeout(() => t.classList.remove('rv', 'in'), 1100 + Number(t.style.getPropertyValue('--i') || 0) * 90);
-      });
+      es.forEach(e => { if (e.isIntersecting) { io.unobserve(e.target); show(e.target as HTMLElement); } });
     }, { threshold: 0.12, rootMargin: '0px 0px -6% 0px' });
     els.forEach(e => {
       const sib = Array.from(e.parentElement?.children ?? []).filter(x => x.matches(REVEAL));
       e.style.setProperty('--i', String(Math.min(5, Math.max(0, sib.indexOf(e)))));
       e.classList.add('rv'); io.observe(e);
     });
-    return () => io.disconnect();
+    // Jaring pengaman: hanya untuk elemen yang SUDAH berada di layar tetapi terlewat observer (mis. layout bergeser).
+    // Elemen di bawah layar sengaja dibiarkan menunggu, sehingga animasi muncul tetap terlihat saat pengguna menggulir.
+    const safety = window.setInterval(() => {
+      const pending = els.filter(e => e.dataset.rvd !== '1');
+      if (!pending.length) { clearInterval(safety); return; }
+      pending.forEach(e => { const r = e.getBoundingClientRect(); if (r.top < innerHeight * 0.94 && r.bottom > 0) { io.unobserve(e); show(e); } });
+    }, 1500);
+    return () => { io.disconnect(); clearInterval(safety); timers.forEach(clearTimeout); };
   }, [dep]);
 }
 

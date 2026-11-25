@@ -261,6 +261,7 @@ function shapeDoc(table: string, d: any) {
   const key = DOC_EMBED[table][0], { [key]: rows, items: legacy, ...rest } = d;
   return { ...rest, items: ((rows || []) as any[]).sort((a, b) => (a.position ?? 0) - (b.position ?? 0)).map(x => ({ desc: x.description, qty: Number(x.qty), price: Number(x.unit_price) })) };
 }
+const SLUG_TABLES = new Set(['services', 'projects', 'articles']);
 const slugify = (t: string) => t.toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/^-+|-+$/g, '').slice(0, 100);
 const MEDIA_KEY = /^uploads\/[0-9a-f-]{36}\.(png|jpg|webp|gif)$/;
 // Sinkronkan relasi proyek (teknologi & galeri). Hanya yang dikirim di body yang diubah.
@@ -395,6 +396,13 @@ async function purgePublic(req: Request, env: Env): Promise<void> {
     await fetch(`https://api.cloudflare.com/client/v4/zones/${env.CF_ZONE_ID}/purge_cache`, { method: 'POST',
       headers: { Authorization: `Bearer ${env.CF_API_TOKEN}`, 'Content-Type': 'application/json' },
       body: JSON.stringify({ files: origins.map(o => o + '/api/public/content') }) }).catch(e => console.error('purge', e));
+}
+// Slug otomatis dari judul bila kosong (artikel/proyek/layanan tanpa slug tidak bisa dibuka dan tidak tampil rapi di landing).
+async function uniqueSlug(env: Env, table: string, title: string): Promise<string> {
+  const base = slugify(title) || `${table === 'articles' ? 'artikel' : table === 'projects' ? 'proyek' : 'layanan'}-${Date.now().toString(36)}`;
+  const r = await sb(env, `${table}?slug=eq.${base}&select=id&limit=1`).catch(() => null);
+  const taken = r && r.ok ? ((await r.json().catch(() => [])) as unknown[]).length > 0 : false;
+  return taken ? `${base.slice(0, 90)}-${Math.random().toString(36).slice(2, 6)}` : base;
 }
 async function admin(req: Request, env: Env, parts: string[], ctx: ExecutionContext): Promise<Response> {
   const res = await adminHandle(req, env, parts);
@@ -533,6 +541,9 @@ async function adminHandle(req: Request, env: Env, parts: string[]): Promise<Res
     }
     if (req.method === 'POST' && (table === 'project_categories' || table === 'technologies') && !data.slug && typeof data.name === 'string')
       data.slug = slugify(data.name) || `${table === 'technologies' ? 'tek' : 'kategori'}-${Date.now().toString(36)}`;
+    if (SLUG_TABLES.has(table) && (data.slug === '' || data.slug == null) && (req.method === 'POST' || 'slug' in data)) {
+      if (typeof data.title === 'string' && data.title.trim()) data.slug = await uniqueSlug(env, table, data.title); else delete data.slug;
+    }
     if (typeof data.slug === 'string' && !/^[a-z0-9-]{1,100}$/.test(data.slug)) return json({ error: 'slug', detail: 'Slug: huruf kecil, angka, tanda minus' }, 400);
     const r = await sb(env, req.method === 'POST' ? table : `${table}?id=eq.${id}`, {
       method: req.method, headers: { Prefer: 'return=representation' }, body: JSON.stringify(data) });
@@ -582,7 +593,8 @@ async function diag(env: Env): Promise<Response> {
 async function publicContent(req: Request, env: Env, ctx: ExecutionContext): Promise<Response> {
   const cache = caches.default, key = new Request(new URL(req.url).origin + '/api/public/content');
   const hit = await cache.match(key);
-  if (hit) return hit;
+  // Peramban selalu memvalidasi ulang (no-cache); hanya cache edge Cloudflare yang menyimpan singkat. Ini mencegah data lama tertahan setelah admin menyimpan.
+  if (hit) return new Response(hit.body, { status: hit.status, headers: { 'Content-Type': 'application/json; charset=utf-8', 'Cache-Control': 'no-cache' } });
   // Respons error Supabase (mis. "Invalid API key") bukan array: jangan diteruskan ke halaman dan jangan di-cache.
   let degraded = false;
   const rows = async (r: Response, t: string): Promise<any[]> => {
@@ -597,14 +609,14 @@ async function publicContent(req: Request, env: Env, ctx: ExecutionContext): Pro
       .then(p => p.map(shapeProject)),
     q('testimonials', '&select=client_name,organization,quote&order=created_at.desc&limit=6'),
     q('clients', '&select=name,logo_key,website_url'),
-    sb(env, 'articles?status=eq.published&select=title,slug,excerpt,cover_key,created_at&order=created_at.desc&limit=6').then(async r => { const d = r.ok ? await r.json().catch(() => []) : []; return Array.isArray(d) ? d : []; }),
+    sb(env, 'articles?status=eq.published&select=title,slug,excerpt,cover_key,created_at&order=created_at.desc&limit=6').then(r => rows(r, 'articles')),
     sb(env, 'site_settings?select=key,value').then(r => rows(r, 'site_settings')) as Promise<{ key: string; value: unknown }[]>,
   ]);
   const settings = Object.fromEntries((Array.isArray(st) ? st : []).map(x => [x.key, x.value]));
   if (degraded) return json({ services, projects, testimonials, clients, articles, settings }, 200); // no-store: coba lagi di permintaan berikutnya
-  const res = json({ services, projects, testimonials, clients, articles, settings }, 200, { 'Cache-Control': 'public, max-age=10, s-maxage=60' });
-  ctx.waitUntil(cache.put(key, res.clone()));
-  return res;
+  const payload = JSON.stringify({ services, projects, testimonials, clients, articles, settings });
+  ctx.waitUntil(cache.put(key, new Response(payload, { headers: { 'Content-Type': 'application/json; charset=utf-8', 'Cache-Control': 'public, max-age=30' } })));
+  return new Response(payload, { headers: { 'Content-Type': 'application/json; charset=utf-8', 'Cache-Control': 'no-cache' } });
 }
 
 async function handleLead(req: Request, env: Env, ctx: ExecutionContext): Promise<Response> {

@@ -6,7 +6,7 @@ export function useContent(): Content | null {
   const [c, setC] = useState<Content | null>(null);
   useEffect(() => {
     const ac = new AbortController();
-    fetch('/api/public/content', { signal: ac.signal })
+    fetch('/api/public/content', { signal: ac.signal, cache: 'no-cache' })
       .then(r => (r.ok ? r.json() : null))
       .then(d => {
         if (!d || typeof d !== 'object') return;

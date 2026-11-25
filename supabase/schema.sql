@@ -303,3 +303,9 @@ update public.tasks t set milestone_id = d.id
 -- Setelah memastikan hasil backfill benar, kolom lama boleh dihapus:
 -- alter table public.tasks drop column milestone;
 -- alter table public.proposals drop column items;  alter table public.invoices drop column items;
+
+-- ===== Perbaikan data lama: isi slug yang kosong (aman dijalankan berulang) =====
+-- Artikel/proyek/layanan tanpa slug tidak bisa dibuka (/articles/null) dan tidak tampil sinkron di landing.
+update public.articles set slug = coalesce(nullif(trim(both '-' from regexp_replace(lower(title), '[^a-z0-9]+', '-', 'g')), ''), 'artikel') || '-' || substr(id::text, 1, 4) where slug is null or slug = '';
+update public.projects set slug = coalesce(nullif(trim(both '-' from regexp_replace(lower(title), '[^a-z0-9]+', '-', 'g')), ''), 'proyek') || '-' || substr(id::text, 1, 4) where slug is null or slug = '';
+update public.services set slug = coalesce(nullif(trim(both '-' from regexp_replace(lower(title), '[^a-z0-9]+', '-', 'g')), ''), 'layanan') || '-' || substr(id::text, 1, 4) where slug is null or slug = '';
