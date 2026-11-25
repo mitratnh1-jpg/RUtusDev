@@ -25,3 +25,4 @@ const api = async p => { const r = await fetch('/api/admin/' + p, { headers:{ Au
     document.title = (inv ? 'Faktur ' : 'Penawaran ') + d.number;
   } catch (e) { el.innerHTML = `<p class="err">${esc(e.message)}</p>`; }
 })();
+document.getElementById('prn')?.addEventListener('click', () => print()); // CSP melarang onclick inline

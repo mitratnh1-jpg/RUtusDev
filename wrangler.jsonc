@@ -23,9 +23,11 @@
     // Site key Turnstile (publik). Dipakai juga oleh halaman login admin.
     "TURNSTILE_SITE_KEY": "GANTI_TURNSTILE_SITE_KEY",
     // Notifikasi lead via email (Resend). Secret RESEND_API_KEY diset lewat `wrangler secret put`.
-    "NOTIFY_TO": "",
+    "NOTIFY_TO": "devrutus@gmail.com",
     "NOTIFY_FROM": "RUtusdev <leads@rutusdev.com>",
     // Token Cloudflare Web Analytics (kosong = nonaktif)
+    // Content-Security-Policy: "1" = hanya melaporkan pelanggaran di konsol browser (uji dulu), "0" = memblokir. Ubah ke "0" setelah landing & /admin/ diuji tanpa error CSP.
+    "CSP_REPORT_ONLY": "1",
     "CF_BEACON_TOKEN": "",
     // Opsional: purge cache konten publik di SEMUA lokasi saat admin menyimpan. Isi CF_ZONE_ID (ID zona, bukan rahasia);
     // token API (izin Cache Purge) diset lewat `wrangler secret put CF_API_TOKEN`. Kosong = lokasi lain menyegarkan sendiri ≤ 60 dtk.

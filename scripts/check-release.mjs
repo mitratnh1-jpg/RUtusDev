@@ -29,6 +29,10 @@ if (placeholder(env.VITE_TURNSTILE_SITE_KEY)) err('web/.env: VITE_TURNSTILE_SITE
 else if (env.VITE_TURNSTILE_SITE_KEY !== v.TURNSTILE_SITE_KEY) err('Site key Turnstile di web/.env berbeda dengan wrangler.jsonc (TURNSTILE_SITE_KEY).');
 if (/example|localhost/.test(env.VITE_SITE_URL || '') || !env.VITE_SITE_URL) err('web/.env: VITE_SITE_URL belum diisi.');
 
+// Sisa admin lama di public/ akan menimpa admin React saat build
+for (const f of ['web/public/admin/index.html', 'web/public/admin/admin.js']) if (existsSync(join(root, f))) err(`${f}: berkas admin lama, hapus (menimpa panel admin React di dist/admin).`);
+if (v.CSP_REPORT_ONLY !== '0') warn('CSP_REPORT_ONLY masih "1" (hanya melaporkan). Setelah diuji tanpa error CSP, ubah ke "0" agar CSP memblokir.');
+
 // Sisa konten/nomor contoh di kode
 const BAD = [/6280000000000/, /Nama Klien/, /12\+\s*(?:<|Proyek|proyek)/, /Cepat di segala skala/, /GANTI\.supabase|GANTI_ANON|GANTI_DENGAN|GANTI_TURNSTILE/];
 (function walk(d) {

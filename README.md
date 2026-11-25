@@ -94,3 +94,15 @@ dibaca lagi; hapus setelah backfill diperiksa (perintah ada di akhir schema.sql)
 - **MFA (TOTP)**: aktifkan di admin → Keamanan & Log → *Aktifkan MFA* (butuh MFA TOTP aktif di Supabase → Authentication). Setelah itu login meminta kode 6 digit dan API admin menolak token tanpa verifikasi (aal1). Setelah MFA terdaftar, set `REQUIRE_MFA` ke `"1"` di `wrangler.jsonc` untuk mewajibkannya (akun tanpa MFA hanya bisa membuka tab Keamanan). Jika kehilangan autentikator: hapus faktor di Supabase → Authentication → Users → user → Factors.
 - **Gambar responsif**: binding `IMAGES` (Cloudflare Images) menyajikan `/media/<kunci>?w=320|480|640|960|1280|1600|1920` sebagai AVIF/WebP sesuai peramban; hasil di-cache. Berkas asli di R2 tetap utuh dan jadi cadangan bila transformasi gagal atau binding tidak ada. GIF tidak diubah. Aktifkan Cloudflare Images di dashboard (kuota gratis 5.000 transformasi unik/bulan).
 - **Paginasi**: daftar admin 20 baris per halaman (`GET /api/admin/<tabel>?page=N` → `{rows,total,page,per}`; tanpa `page` tetap array maks. 200 untuk dropdown & dasbor). Log keamanan dan media juga dipaginasi. Daftar artikel publik: 12 per halaman (`/articles?page=N`).
+
+## Header keamanan (CSP, HSTS, dll.)
+`worker/security.ts` menambah header ke semua respons (API, halaman SSR, media, aset statis): Content-Security-Policy, HSTS,
+`X-Content-Type-Options`, Referrer-Policy, Permissions-Policy, COOP, dan `frame-ancestors 'none'` (anti-clickjacking).
+CSP awalnya mode laporan (`CSP_REPORT_ONLY: "1"` di `wrangler.jsonc`): buka landing dan `/admin/`, cek konsol browser; bila tidak ada
+pelanggaran CSP, ubah ke `"0"` agar memblokir. Bila menambah skrip/font/embed pihak ketiga, tambahkan domainnya di `worker/security.ts`.
+Berkas admin lama (`web/public/admin/index.html`, `admin.js`) sudah dihapus; `npm run check:release` gagal bila muncul lagi.
+
+## Jika halaman publik kosong / "Invalid API key"
+`/api/public/content` memakai `SUPABASE_SERVICE_ROLE_KEY` (secret Worker). Bila kunci itu salah/tidak ada, Supabase membalas "Invalid API key".
+Worker kini tidak meneruskan/men-cache respons error itu (halaman tampil dengan konten bawaan) dan mencatat `content <tabel> <status>` di `wrangler tail`.
+Perbaiki: `npx wrangler secret put SUPABASE_SERVICE_ROLE_KEY` dengan secret key dari Supabase → Settings → API Keys (`sb_secret_…` atau legacy `service_role`).

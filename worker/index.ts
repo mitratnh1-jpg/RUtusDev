@@ -1,5 +1,6 @@
 import { pages } from './pages';
 import { buildPdf } from './pdf';
+import { secure } from './security';
 import { PROJECT_EMBED, PROJECT_LIST_COLS, shapeProject } from './projects';
 
 export interface Env {
@@ -13,6 +14,7 @@ export interface Env {
   // Cloudflare Images binding: ubah ukuran & format (AVIF/WebP) gambar saat disajikan. Tidak ada = sajikan berkas asli.
   IMAGES?: { input(s: ReadableStream): { transform(o: { width?: number; fit?: string }): { output(o: { format: string; quality?: number }): Promise<{ response(): Response }> } } };
   REQUIRE_MFA?: string; // "1" = admin wajib MFA (akun tanpa MFA hanya bisa membuka tab Keamanan untuk mengaktifkannya)
+  CSP_REPORT_ONLY?: string; // "1" = CSP hanya dilaporkan (tidak memblokir); "0" = diberlakukan
   CF_API_TOKEN?: string; CF_ZONE_ID?: string; // opsional: purge cache konten publik di seluruh lokasi Cloudflare setelah admin menyimpan
 }
 type Cfg = { cols: string[]; order: string; create?: boolean; del?: boolean };
@@ -88,9 +90,11 @@ const json = (d: unknown, s = 200, h: Record<string,string> = {}) =>
   new Response(JSON.stringify(d), { status: s, headers: { 'Content-Type': 'application/json', 'Cache-Control': 'no-store', ...h } });
 const clean = (v: unknown, max: number) => (typeof v === 'string' ? v.trim().slice(0, max) : '');
 
+// Kunci JWT lama (eyJ…) dikirim sebagai apikey + Bearer; kunci format baru (sb_secret_… / sb_publishable_…) hanya lewat header apikey.
+const keyHdr = (k: string): Record<string, string> => (k.startsWith('eyJ') ? { apikey: k, Authorization: `Bearer ${k}` } : { apikey: k });
 const sb = (env: Env, path: string, init: RequestInit = {}) =>
   fetch(`${env.SUPABASE_URL}/rest/v1/${path}`, { ...init, headers: {
-    apikey: env.SUPABASE_SERVICE_ROLE_KEY, Authorization: `Bearer ${env.SUPABASE_SERVICE_ROLE_KEY}`,
+    ...keyHdr(env.SUPABASE_SERVICE_ROLE_KEY),
     'Content-Type': 'application/json', ...(init.headers as object) } });
 
 // Paginasi daftar admin. Tanpa ?page → semua (maks. 200; dipakai dropdown relasi & dasbor).
@@ -332,7 +336,7 @@ async function security(req: Request, env: Env, me: Me, what?: string, sub?: str
     if (req.method !== 'GET') return json({ error: 'method' }, 405);
     if (what === 'admins') {
       const [profiles, users] = await Promise.all([rows('admin_profiles?select=user_id,display_name,role,created_at&order=created_at.asc&limit=100'),
-        fetch(`${env.SUPABASE_URL}/auth/v1/admin/users?per_page=200`, { headers: { apikey: env.SUPABASE_SERVICE_ROLE_KEY, Authorization: `Bearer ${env.SUPABASE_SERVICE_ROLE_KEY}` } })
+        fetch(`${env.SUPABASE_URL}/auth/v1/admin/users?per_page=200`, { headers: keyHdr(env.SUPABASE_SERVICE_ROLE_KEY) })
           .then(r => (r.ok ? r.json() : { users: [] })).catch(() => ({ users: [] })) as Promise<{ users?: any[] }>]);
       const byId = new Map((users.users || []).map((u: any) => [u.id, u]));
       return json(profiles.map(p => ({ user_id: p.user_id, name: p.display_name || '', role: p.role, created_at: p.created_at,
@@ -556,17 +560,25 @@ async function publicContent(req: Request, env: Env, ctx: ExecutionContext): Pro
   const cache = caches.default, key = new Request(new URL(req.url).origin + '/api/public/content');
   const hit = await cache.match(key);
   if (hit) return hit;
-  const q = (t: string, extra = '', flt = 'is_published=eq.true') => sb(env, `${t}?${flt}${extra}`).then(r => r.json());
+  // Respons error Supabase (mis. "Invalid API key") bukan array: jangan diteruskan ke halaman dan jangan di-cache.
+  let degraded = false;
+  const rows = async (r: Response, t: string): Promise<any[]> => {
+    const d = r.ok ? await r.json().catch(() => null) : null;
+    if (!Array.isArray(d)) { degraded = true; console.error('content', t, r.status); return []; }
+    return d;
+  };
+  const q = (t: string, extra = '', flt = 'is_published=eq.true') => sb(env, `${t}?${flt}${extra}`).then(r => rows(r, t));
   const [services, projects, testimonials, clients, articles, st] = await Promise.all([
     q('services', '&select=title,slug,summary,icon&order=sort_order.asc'),
     q('projects', `&select=${PROJECT_LIST_COLS},${PROJECT_EMBED}&order=published_at.desc.nullslast,created_at.desc&limit=12`, 'status=eq.published')
-      .then(p => (Array.isArray(p) ? p.map(shapeProject) : [])),
+      .then(p => p.map(shapeProject)),
     q('testimonials', '&select=client_name,organization,quote&order=created_at.desc&limit=6'),
     q('clients', '&select=name,logo_key,website_url'),
-    sb(env, 'articles?status=eq.published&select=title,slug,excerpt,cover_key,created_at&order=created_at.desc&limit=6').then(r => (r.ok ? r.json() : [])),
-    sb(env, 'site_settings?select=key,value').then(r => r.json()) as Promise<{ key: string; value: unknown }[]>,
+    sb(env, 'articles?status=eq.published&select=title,slug,excerpt,cover_key,created_at&order=created_at.desc&limit=6').then(async r => { const d = r.ok ? await r.json().catch(() => []) : []; return Array.isArray(d) ? d : []; }),
+    sb(env, 'site_settings?select=key,value').then(r => rows(r, 'site_settings')) as Promise<{ key: string; value: unknown }[]>,
   ]);
   const settings = Object.fromEntries((Array.isArray(st) ? st : []).map(x => [x.key, x.value]));
+  if (degraded) return json({ services, projects, testimonials, clients, articles, settings }, 200); // no-store: coba lagi di permintaan berikutnya
   const res = json({ services, projects, testimonials, clients, articles, settings }, 200, { 'Cache-Control': 'public, max-age=10, s-maxage=60' });
   ctx.waitUntil(cache.put(key, res.clone()));
   return res;
@@ -624,7 +636,7 @@ async function media(req: Request, env: Env, ctx: ExecutionContext, key: string)
     'Cache-Control': 'public, max-age=31536000, immutable', 'X-Content-Type-Options': 'nosniff', Vary: 'Accept' } });
 }
 
-export default {
+const handler = {
   async fetch(req: Request, env: Env, ctx: ExecutionContext): Promise<Response> {
     const { pathname } = new URL(req.url);
     try {
@@ -643,5 +655,12 @@ export default {
       if (pg) return pg;
     } catch (e) { console.error(e); return json({ error: 'server' }, 500); }
     return env.ASSETS.fetch(req);
+  },
+};
+
+// Semua respons (termasuk aset statis) diberi header keamanan.
+export default {
+  async fetch(req: Request, env: Env, ctx: ExecutionContext): Promise<Response> {
+    return secure(await handler.fetch(req, env, ctx), env.CSP_REPORT_ONLY !== '0');
   },
 };
