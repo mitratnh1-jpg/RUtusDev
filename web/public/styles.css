@@ -714,3 +714,13 @@ button:focus-visible, a:focus-visible {
 }
 /* Tablet sempit: hanya satu chip melayang agar tidak menimpa judul / deskripsi */
 @media(min-width:761px) and (max-width:1100px){.t2,.t3,.t4{display:none}.t1{top:15%;right:8%}}
+
+/* Hero: teknologi di dasar hero bergantian tiap 3 detik (kata lama naik & hilang, kata baru masuk dari bawah) */
+.slot{display:inline-grid;overflow:hidden;text-align:center;line-height:1.5}
+.slot>em{grid-area:1/1;font-style:normal;white-space:nowrap}
+.slot-size{visibility:hidden}
+.slot-w.in{animation:slot-in .65s cubic-bezier(.22,1,.36,1) both}
+.slot-w.out{animation:slot-out .65s cubic-bezier(.22,1,.36,1) both}
+@keyframes slot-in{from{transform:translateY(110%);opacity:0}to{transform:none;opacity:1}}
+@keyframes slot-out{from{transform:none;opacity:1}to{transform:translateY(-110%);opacity:0}}
+@media(prefers-reduced-motion:reduce){.slot-w.in,.slot-w.out{animation:none}}
