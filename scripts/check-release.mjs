@@ -31,6 +31,7 @@ if (/example|localhost/.test(env.VITE_SITE_URL || '') || !env.VITE_SITE_URL) err
 
 // Sisa admin lama di public/ akan menimpa admin React saat build
 for (const f of ['web/public/admin/index.html', 'web/public/admin/admin.js']) if (existsSync(join(root, f))) err(`${f}: berkas admin lama, hapus (menimpa panel admin React di dist/admin).`);
+if (v.DIAG === '1') warn('DIAG masih "1" (/api/diag aktif). Matikan setelah selesai diagnosis.');
 if (v.CSP_REPORT_ONLY !== '0') warn('CSP_REPORT_ONLY masih "1" (hanya melaporkan). Setelah diuji tanpa error CSP, ubah ke "0" agar CSP memblokir.');
 
 // Sisa konten/nomor contoh di kode

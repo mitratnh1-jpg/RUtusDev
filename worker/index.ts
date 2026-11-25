@@ -14,6 +14,7 @@ export interface Env {
   // Cloudflare Images binding: ubah ukuran & format (AVIF/WebP) gambar saat disajikan. Tidak ada = sajikan berkas asli.
   IMAGES?: { input(s: ReadableStream): { transform(o: { width?: number; fit?: string }): { output(o: { format: string; quality?: number }): Promise<{ response(): Response }> } } };
   REQUIRE_MFA?: string; // "1" = admin wajib MFA (akun tanpa MFA hanya bisa membuka tab Keamanan untuk mengaktifkannya)
+  DIAG?: string; // "1" = aktifkan /api/diag (diagnostik sementara, tanpa membocorkan kunci)
   CSP_REPORT_ONLY?: string; // "1" = CSP hanya dilaporkan (tidak memblokir); "0" = diberlakukan
   CF_API_TOKEN?: string; CF_ZONE_ID?: string; // opsional: purge cache konten publik di seluruh lokasi Cloudflare setelah admin menyimpan
 }
@@ -559,6 +560,25 @@ async function adminHandle(req: Request, env: Env, parts: string[]): Promise<Res
   return json({ error: 'method' }, 405);
 }
 
+// Diagnostik sementara: status koneksi ke Supabase tanpa menampilkan isi kunci. Aktif hanya bila DIAG = "1".
+async function diag(env: Env): Promise<Response> {
+  const fmt = (k: string) => !k ? 'kosong' : k.startsWith('sb_secret_') ? 'sb_secret (benar untuk SERVICE_ROLE)' : k.startsWith('sb_publishable_') ? 'sb_publishable (SALAH di SERVICE_ROLE: ini kunci publik)' : k.startsWith('eyJ') ? 'jwt-lama' : 'format tidak dikenal';
+  const role = (k: string) => { try { return String(JSON.parse(atob(k.split('.')[1].replace(/-/g, '+').replace(/_/g, '/'))).role || ''); } catch { return ''; } };
+  const probe = async (path: string) => {
+    try { const r = await sb(env, path); let m = ''; try { m = String(((await r.json()) as { message?: string })?.message || '').slice(0, 120); } catch { /* bukan JSON */ } return { status: r.status, message: m }; }
+    catch { return { status: 0, message: 'fetch gagal (kunci/URL memuat karakter tidak valid, mis. spasi atau baris baru)' }; }
+  };
+  const key = env.SUPABASE_SERVICE_ROLE_KEY || '';
+  let host = 'URL tidak valid'; try { host = new URL(env.SUPABASE_URL).host; } catch { /* biarkan */ }
+  return json({
+    supabase_host: host,
+    service_key: { format: fmt(key), length: key.length, tanpa_spasi_tepi: key === key.trim(), jwt_role: role(key) || undefined },
+    anon_key_format: fmt(env.SUPABASE_ANON_KEY || ''),
+    admin_profiles: await probe('admin_profiles?select=user_id&limit=1'),
+    site_settings: await probe('site_settings?select=key&limit=1'),
+  });
+}
+
 async function publicContent(req: Request, env: Env, ctx: ExecutionContext): Promise<Response> {
   const cache = caches.default, key = new Request(new URL(req.url).origin + '/api/public/content');
   const hit = await cache.match(key);
@@ -648,6 +668,7 @@ const handler = {
       if (pathname === '/admin/config.js') return new Response(`window.CFG = ${JSON.stringify({ SUPABASE_URL: env.SUPABASE_URL, ANON_KEY: env.SUPABASE_ANON_KEY, TURNSTILE_SITE_KEY: env.TURNSTILE_SITE_KEY || '' })};\n`,
         { headers: { 'Content-Type': 'application/javascript; charset=utf-8', 'Cache-Control': 'no-store' } });
       if (pathname === '/api/public/content' && req.method === 'GET') return publicContent(req, env, ctx);
+      if (pathname === '/api/diag' && req.method === 'GET' && env.DIAG === '1') return diag(env);
       if (pathname === '/api/leads') return req.method === 'POST' ? handleLead(req, env, ctx) : json({ error: 'method' }, 405);
       if (pathname === '/api/auth/login') return req.method === 'POST' ? adminLogin(req, env) : json({ error: 'method' }, 405);
       if (pathname === '/api/auth/mfa') return req.method === 'POST' ? adminMfa(req, env) : json({ error: 'method' }, 405);
