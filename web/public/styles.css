@@ -677,3 +677,40 @@ button:focus-visible, a:focus-visible {
 .doc .cta{margin-top:32px}
 
 .gallery{display:grid;grid-template-columns:repeat(auto-fill,minmax(220px,1fr));gap:12px;margin:24px 0}.gallery img{width:100%;aspect-ratio:4/3;object-fit:cover;border-radius:8px}
+
+/* =========================================================
+   Hero tablet & desktop: seluruh isi hero tampak dalam satu layar (tanpa harus menggulir)
+   Kiri: lencana + judul besar. Kanan: deskripsi & tombol. Dasar: logo klien / teknologi.
+   Ukuran judul mengikuti lebar DAN tinggi layar agar tidak pernah terpotong.
+   ========================================================= */
+.hero-logos{display:none}
+@media(min-width:761px){
+  .hero{min-height:100vh;min-height:100svh;justify-content:flex-start;padding:92px 0 72px}
+  .hero .wrap{max-width:1360px;padding-inline:clamp(24px,4.4vw,64px)}
+  .hero-in{flex:1 1 auto;display:grid;grid-template-columns:minmax(0,1.75fr) minmax(0,1fr);column-gap:clamp(24px,3.4vw,56px);align-content:center;align-items:end}
+  .hero-in .badge{grid-column:1/-1;justify-self:start;margin-bottom:clamp(18px,4.5svh,44px)}
+  .hero h1{grid-column:1;max-width:none;font-size:clamp(34px,min(5.4vw,9svh),76px);line-height:1.04}
+  .hero-side{grid-column:2;text-align:right;display:flex;flex-direction:column;align-items:flex-end;padding-bottom:.6em}
+  .hero-side .lead{margin-top:0;max-width:30ch;font-size:clamp(16px,min(1.7vw,2.6svh),22px);opacity:.78}
+  .hero-side .row{justify-content:flex-end;margin-top:clamp(16px,3.4svh,30px)}
+  .hero-logos{display:flex;width:100%;align-items:center;justify-content:space-between;gap:24px;flex:0 0 auto;position:relative;z-index:2;min-height:44px;
+    font:600 clamp(16px,2vw,24px) var(--head);letter-spacing:-.03em;color:#fff}
+  .hero-logos span{opacity:.55;transition:opacity .25s}.hero-logos span:hover{opacity:1}
+  .hero-logos img{height:clamp(22px,3.6svh,36px);width:auto;max-width:150px;object-fit:contain;filter:brightness(0) invert(1);opacity:.6;transition:opacity .25s}
+  .hero-logos img:hover{opacity:1}
+  /* chip melayang diletakkan di area kosong kanan-atas, tidak menimpa teks */
+  .t1{top:22%;right:9%}.t2{top:31%;right:27%}.t3{top:15%;right:30%}.t4{top:40%;right:15%}
+}
+/* Layar pendek (mis. tablet landscape dengan bilah browser): logo disembunyikan, sisanya tetap utuh */
+@media(min-width:761px) and (max-height:600px){.hero-logos{display:none}.hero{padding-bottom:56px}}
+/* Tablet potret: judul di atas, deskripsi di bawahnya, tetap satu layar */
+@media(min-width:761px) and (max-width:1000px) and (orientation:portrait){
+  .hero-in{grid-template-columns:1fr;row-gap:clamp(20px,4svh,40px)}
+  .hero h1{max-width:none;font-size:clamp(44px,9.2vw,84px)}
+  .t2,.t3,.t4{display:none}.t1{top:16%;right:8%}
+  .hero-side{grid-column:1;text-align:left;align-items:flex-start;padding-bottom:0}
+  .hero-side .row{justify-content:flex-start}
+  .hero-side .lead{max-width:44ch}
+}
+/* Tablet sempit: hanya satu chip melayang agar tidak menimpa judul / deskripsi */
+@media(min-width:761px) and (max-width:1100px){.t2,.t3,.t4{display:none}.t1{top:15%;right:8%}}

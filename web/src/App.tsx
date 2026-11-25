@@ -59,7 +59,9 @@ function Nav() {
   );
 }
 
-function Hero({ h }: { h: { eyebrow?: string; headline?: string; headline_dim?: string; subheadline?: string; cta_primary?: string; cta_secondary?: string } }) {
+const STACK = ['Cloudflare', 'Supabase', 'React', 'TypeScript', 'PostgreSQL'];
+function Hero({ h, clients = [] }: { h: { eyebrow?: string; headline?: string; headline_dim?: string; subheadline?: string; cta_primary?: string; cta_secondary?: string }; clients?: Client[] }) {
+  const logos = clients.filter(c => c.logo_key && COVER.test(c.logo_key)).slice(0, 5);
   const root = useRef<HTMLElement>(null);
   useEffect(() => {
     const el = root.current!;
@@ -83,8 +85,14 @@ function Hero({ h }: { h: { eyebrow?: string; headline?: string; headline_dim?: 
       <div className="wrap hero-in">
         <p className="badge"><i className="dot" />{h.eyebrow || 'Studio pengembangan digital'}</p>
         <h1><b>{h.headline || 'Kami membangun pengalaman digital'}</b><br /><span>{h.headline_dim || 'yang menggerakkan bisnis Anda.'}</span></h1>
-        <p className="lead">{h.subheadline || 'Website, aplikasi web, dan solusi digital custom — dirancang, dibangun, dan diluncurkan sampai siap dipakai.'}</p>
-        <div className="row"><a className="btn btn-blue" href="#work">{h.cta_primary || 'Lihat karya'}</a><a className="btn btn-ghost" href="#contact">{h.cta_secondary || 'Jadwalkan konsultasi'}</a></div>
+        <div className="hero-side">
+          <p className="lead">{h.subheadline || 'Website, aplikasi web, dan solusi digital custom — dirancang, dibangun, dan diluncurkan sampai siap dipakai.'}</p>
+          <div className="row"><a className="btn btn-blue" href="#work">{h.cta_primary || 'Lihat karya'}</a><a className="btn btn-ghost" href="#contact">{h.cta_secondary || 'Jadwalkan konsultasi'}</a></div>
+        </div>
+      </div>
+      {/* Jejak kepercayaan di dasar hero (tablet & desktop): logo klien bila ada, selain itu teknologi yang dipakai */}
+      <div className="wrap hero-logos" aria-label={logos.length ? 'Klien' : 'Teknologi'}>
+        {logos.length ? logos.map(c => <img key={c.name} src={`/media/${c.logo_key}`} alt={c.name} loading="lazy" />) : STACK.map(t => <span key={t}>{t}</span>)}
       </div>
       <i className="corners bottom" aria-hidden="true" />
     </section>
@@ -379,7 +387,7 @@ export default function App() {
       <Progress />
       <Nav />
       <main id="top">
-        <Hero h={h} />
+        <Hero h={h} clients={c?.clients ?? []} />
         <Services items={c?.services ?? []} />
         <Work items={c?.projects ?? []} />
         <Trust t={testi} stats={s?.stats} />
