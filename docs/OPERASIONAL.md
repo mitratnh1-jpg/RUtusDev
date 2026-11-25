@@ -55,7 +55,9 @@ Proyek punya `status` (draft/published/archived) dan `published_at` (terbit pert
 - [ ] Supabase Attack Protection (CAPTCHA) aktif, sign-up publik mati
 - [ ] Lead tes → notifikasi masuk; workflow backup dijalankan manual sekali dan hasilnya terverifikasi
 - [ ] Turnstile site key & secret terpasang; kirim form tes → lead muncul di admin
-- [ ] MFA aktif di akun admin; hanya satu admin di `admin_profiles`
+- [ ] MFA aktif di akun admin (admin → Keamanan & Log), lalu `REQUIRE_MFA` = `"1"` di `wrangler.jsonc`; simpan kode cadangan/kunci autentikator di password manager; hanya satu admin di `admin_profiles`
+- [ ] Cloudflare Images aktif (binding `IMAGES`) dan gambar sampul tampil sebagai AVIF/WebP (cek tab Network → `?w=`)
+- [ ] (Opsional) `CF_ZONE_ID` + secret `CF_API_TOKEN` agar perubahan konten langsung terlihat di semua lokasi
 - [ ] RLS aktif di semua tabel (cek di Supabase → Table editor)
 - [ ] Tidak ada service-role key di `public/` atau repository
 - [ ] Sitemap dikirim ke Google Search Console; cek `/robots.txt`

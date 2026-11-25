@@ -10,6 +10,10 @@ export interface Env {
   NOTIFY_TO?: string; NOTIFY_FROM?: string; RESEND_API_KEY?: string; NOTIFY_WEBHOOK_URL?: string; // notifikasi lead (secret: RESEND_API_KEY, NOTIFY_WEBHOOK_URL)
   RATE_LIMITER?: { limit(o: { key: string }): Promise<{ success: boolean }> };
   RATE_LIMITER_ADMIN?: { limit(o: { key: string }): Promise<{ success: boolean }> };
+  // Cloudflare Images binding: ubah ukuran & format (AVIF/WebP) gambar saat disajikan. Tidak ada = sajikan berkas asli.
+  IMAGES?: { input(s: ReadableStream): { transform(o: { width?: number; fit?: string }): { output(o: { format: string; quality?: number }): Promise<{ response(): Response }> } } };
+  REQUIRE_MFA?: string; // "1" = admin wajib MFA (akun tanpa MFA hanya bisa membuka tab Keamanan untuk mengaktifkannya)
+  CF_API_TOKEN?: string; CF_ZONE_ID?: string; // opsional: purge cache konten publik di seluruh lokasi Cloudflare setelah admin menyimpan
 }
 type Cfg = { cols: string[]; order: string; create?: boolean; del?: boolean };
 const TABLES: Record<string, Cfg> = {
@@ -89,6 +93,21 @@ const sb = (env: Env, path: string, init: RequestInit = {}) =>
     apikey: env.SUPABASE_SERVICE_ROLE_KEY, Authorization: `Bearer ${env.SUPABASE_SERVICE_ROLE_KEY}`,
     'Content-Type': 'application/json', ...(init.headers as object) } });
 
+// Paginasi daftar admin. Tanpa ?page → semua (maks. 200; dipakai dropdown relasi & dasbor).
+// Dengan ?page=N → PER baris untuk halaman itu + total: { rows, total, page, per }.
+const PER = 20;
+type Rows = { ok: boolean; rows: any[]; total: number | null; page: number };
+async function fetchRows(env: Env, url: URL, base: string): Promise<Rows> {
+  const n = Math.floor(Number(url.searchParams.get('page')));
+  const page = n >= 1 ? Math.min(n, 100000) : 0;
+  const r = await sb(env, page ? `${base}&limit=${PER}&offset=${(page - 1) * PER}` : `${base}&limit=200`, page ? { headers: { Prefer: 'count=exact' } } : {});
+  const d = r.ok ? await r.json() : [];
+  const m = /\/(\d+)$/.exec(r.headers.get('Content-Range') || '');
+  return { ok: r.ok || r.status === 416, rows: Array.isArray(d) ? d : [], total: m ? Number(m[1]) : null, page };
+}
+const rowsRes = (x: Rows, shape: (r: any[]) => any[] = r => r) =>
+  x.page ? json({ rows: shape(x.rows), total: x.total ?? x.rows.length, page: x.page, per: PER }) : json(shape(x.rows));
+
 // Peran & hak akses. Tingkat: r = baca, w = tulis (buat/ubah), d = hapus.
 // Peran yang tidak dikenal tidak punya hak apa pun (fail closed).
 type Level = 'r' | 'w' | 'd';
@@ -107,23 +126,29 @@ const can = (role: string, group: string, lv: Level) => (PERM[role]?.[group] || 
 const LEVEL: Record<string, Level> = { GET: 'r', POST: 'w', PUT: 'w', PATCH: 'w', DELETE: 'd' };
 const VERB: Record<string, string> = { GET: 'read', POST: 'create', PUT: 'update', PATCH: 'update', DELETE: 'delete' };
 
-type Me = { id: string; role: string; email: string; name: string; lastSignIn: string | null; token: string };
+type Factor = { id: string; status: string; factor_type: string; friendly_name?: string; created_at?: string };
+type Me = { id: string; role: string; email: string; name: string; lastSignIn: string | null; token: string; aal: string; mfa: boolean; factors: Factor[] };
 // Verifikasi token ke Supabase Auth, lalu ambil peran dari admin_profiles
 async function auth(req: Request, env: Env): Promise<Me | null> {
   const t = (req.headers.get('Authorization') || '').replace(/^Bearer /, '');
   if (!t) return null;
   const r = await fetch(`${env.SUPABASE_URL}/auth/v1/user`, { headers: { apikey: env.SUPABASE_ANON_KEY, Authorization: `Bearer ${t}` } });
   if (!r.ok) return null;
-  const u = (await r.json()) as { id?: string; email?: string; last_sign_in_at?: string };
+  const u = (await r.json()) as { id?: string; email?: string; last_sign_in_at?: string; factors?: Factor[] };
   if (!u.id || !UUID.test(u.id)) return null;
+  // MFA: bila akun punya faktor TOTP terverifikasi, hanya token aal2 (sudah memasukkan kode) yang diterima. Token aal1 ditolak.
+  const factors = (u.factors || []).filter(f => f && typeof f.id === 'string');
+  const mfa = factors.some(f => f.status === 'verified');
+  const aal = jwtMeta(t).aal || 'aal1';
+  if (mfa && aal !== 'aal2') return null;
   const p = (await sb(env, `admin_profiles?user_id=eq.${u.id}&select=role,display_name`).then(x => x.json())) as { role: string; display_name: string | null }[];
   return Array.isArray(p) && p[0]
-    ? { id: u.id, role: String(p[0].role || ''), email: u.email || '', name: p[0].display_name || '', lastSignIn: u.last_sign_in_at || null, token: t }
+    ? { id: u.id, role: String(p[0].role || ''), email: u.email || '', name: p[0].display_name || '', lastSignIn: u.last_sign_in_at || null, token: t, aal, mfa, factors }
     : null;
 }
 // Klaim JWT yang sudah diverifikasi Supabase; hanya untuk ditampilkan (kapan sesi terbit/habis).
-function jwtMeta(t: string): { iat?: number; exp?: number; session_id?: string } {
-  try { const p = JSON.parse(atob(t.split('.')[1].replace(/-/g, '+').replace(/_/g, '/'))); return { iat: p.iat, exp: p.exp, session_id: p.session_id }; } catch { return {}; }
+function jwtMeta(t: string): { iat?: number; exp?: number; session_id?: string; aal?: string } {
+  try { const p = JSON.parse(atob(t.split('.')[1].replace(/-/g, '+').replace(/_/g, '/'))); return { iat: p.iat, exp: p.exp, session_id: p.session_id, aal: typeof p.aal === 'string' ? p.aal : undefined }; } catch { return {}; }
 }
 const reqIp = (req: Request) => req.headers.get('CF-Connecting-IP') || 'unknown';
 // Catat aktivitas beserta hasil, IP, dan user agent. Kegagalan menulis log tidak boleh menggagalkan permintaan.
@@ -157,8 +182,50 @@ async function adminLogin(req: Request, env: Env): Promise<Response> {
     await log(env, req, uid, 'login', 'auth', undefined, 'denied', 'bukan admin / peran tidak dikenal');
     return json({ error: 'invalid' }, 401); // pesan sama dengan kredensial salah agar tidak membocorkan akun
   }
+  // Akun dengan MFA: token dari kata sandi baru aal1 dan ditolak oleh API admin. Browser harus menyelesaikan kode TOTP di /api/auth/mfa.
+  const fs = await verifiedFactors(env, d.access_token);
+  if (fs === null) return json({ error: 'auth' }, 502);
+  if (fs.length) return json({ mfa_required: true, factor_id: fs[0], mfa_token: d.access_token });
   await log(env, req, uid, 'login', 'auth', undefined, 'success', `role=${p[0].role}`);
   return json({ access_token: d.access_token, expires_in: d.expires_in ?? 3600 });
+}
+
+const authApi = (env: Env, path: string, token: string, init: RequestInit = {}) =>
+  fetch(`${env.SUPABASE_URL}/auth/v1/${path}`, { ...init, headers: { apikey: env.SUPABASE_ANON_KEY, Authorization: `Bearer ${token}`, 'Content-Type': 'application/json' } });
+// ID faktor TOTP terverifikasi milik pemilik token. null = tidak bisa dipastikan (gagal tertutup).
+async function verifiedFactors(env: Env, token: string): Promise<string[] | null> {
+  const r = await authApi(env, 'user', token).catch(() => null);
+  if (!r || !r.ok) return null;
+  const u = (await r.json().catch(() => ({}))) as { factors?: Factor[] };
+  return (u.factors || []).filter(f => f.status === 'verified' && f.factor_type === 'totp' && UUID.test(String(f.id))).map(f => f.id);
+}
+// Tantang + verifikasi kode TOTP di Supabase. Berhasil → sesi baru level aal2.
+async function mfaVerify(env: Env, token: string, factor: string, code: string): Promise<{ access_token: string; expires_in: number; uid: string } | null> {
+  const c = await authApi(env, `factors/${factor}/challenge`, token, { method: 'POST', body: '{}' }).catch(() => null);
+  const ch = c && c.ok ? ((await c.json().catch(() => ({}))) as { id?: string }) : {};
+  if (!ch.id) return null;
+  const v = await authApi(env, `factors/${factor}/verify`, token, { method: 'POST', body: JSON.stringify({ challenge_id: ch.id, code }) }).catch(() => null);
+  if (!v || !v.ok) return null;
+  const d = (await v.json().catch(() => ({}))) as { access_token?: string; expires_in?: number; user?: { id?: string } };
+  return d.access_token && d.user?.id && UUID.test(d.user.id) ? { access_token: d.access_token, expires_in: d.expires_in ?? 3600, uid: d.user.id } : null;
+}
+// Langkah 2 login: kode TOTP. Menukar token aal1 dengan token aal2.
+async function adminMfa(req: Request, env: Env): Promise<Response> {
+  const origin = req.headers.get('Origin');
+  if (origin && origin !== (env.ALLOWED_ORIGIN || new URL(req.url).origin)) return json({ error: 'forbidden' }, 403);
+  if (await overLimit(env.RATE_LIMITER, reqIp(req), 'mfa', 8)) return json({ error: 'rate_limited' }, 429);
+  const raw = await req.text();
+  if (raw.length > 6000) return json({ error: 'too_large' }, 413);
+  let b: Record<string, unknown>;
+  try { b = JSON.parse(raw); } catch { return json({ error: 'bad_json' }, 400); }
+  const token = clean(b.token, 4096), factor = clean(b.factor_id, 64), code = clean(b.code, 12).replace(/\s/g, '');
+  if (!token || !UUID.test(factor) || !/^\d{6}$/.test(code)) return json({ error: 'invalid' }, 422);
+  const res = await mfaVerify(env, token, factor, code);
+  if (!res) { await log(env, req, null, 'mfa', 'auth', undefined, 'failure', 'kode MFA salah / kedaluwarsa'); return json({ error: 'invalid' }, 401); }
+  const p = (await sb(env, `admin_profiles?user_id=eq.${res.uid}&select=role`).then(x => x.json())) as { role: string }[];
+  if (!Array.isArray(p) || !p[0] || !PERM[p[0].role]) { await log(env, req, res.uid, 'mfa', 'auth', undefined, 'denied', 'bukan admin / peran tidak dikenal'); return json({ error: 'invalid' }, 401); }
+  await log(env, req, res.uid, 'login', 'auth', undefined, 'success', `role=${p[0].role} mfa`);
+  return json({ access_token: res.access_token, expires_in: res.expires_in });
 }
 
 function pick(cfg: Cfg, body: Record<string, unknown>) {
@@ -208,14 +275,48 @@ async function syncProject(env: Env, projectId: string, body: Record<string, unk
 }
 
 // Halaman Keamanan: profil & sesi sendiri (semua peran); daftar admin dan log lengkap (hanya yang boleh membaca log).
-async function security(req: Request, env: Env, me: Me, what?: string): Promise<Response> {
+async function security(req: Request, env: Env, me: Me, what?: string, sub?: string): Promise<Response> {
   const rows = async (path: string) => { const r = await sb(env, path); const d = r.ok ? await r.json() : []; return Array.isArray(d) ? (d as any[]) : []; };
   if (what === 'me' && req.method === 'GET') {
     const j = jwtMeta(me.token);
     const logins = await rows(`activity_logs?actor_id=eq.${me.id}&action=eq.login&result=eq.success&select=created_at,ip,user_agent&order=created_at.desc&limit=5`);
     return json({ id: me.id, email: me.email, name: me.name, role: me.role, perm: PERM[me.role], last_sign_in_at: me.lastSignIn,
+      mfa: { enabled: me.mfa, required: env.REQUIRE_MFA === '1', aal: me.aal },
       session: { issued_at: j.iat ? new Date(j.iat * 1000).toISOString() : null, expires_at: j.exp ? new Date(j.exp * 1000).toISOString() : null,
         ip: reqIp(req), user_agent: (req.headers.get('User-Agent') || '').slice(0, 300) }, recent_logins: logins });
+  }
+  if (what === 'mfa') {
+    const totp = me.factors.filter(f => f.factor_type === 'totp');
+    if (req.method === 'GET' && !sub) return json({ enabled: me.mfa, required: env.REQUIRE_MFA === '1', aal: me.aal,
+      factors: totp.map(f => ({ id: f.id, status: f.status, name: f.friendly_name || '', created_at: f.created_at || null })) });
+    if (req.method === 'POST' && sub === 'enroll') {
+      if (me.mfa) return json({ error: 'already', detail: 'MFA sudah aktif. Nonaktifkan dulu bila ingin mendaftarkan ulang.' }, 409);
+      for (const f of totp.filter(x => x.status !== 'verified')) await authApi(env, `factors/${f.id}`, me.token, { method: 'DELETE' }).catch(() => null); // sisa pendaftaran yang tidak selesai
+      const r = await authApi(env, 'factors', me.token, { method: 'POST', body: JSON.stringify({ factor_type: 'totp', issuer: 'RUtusdev', friendly_name: `RUtusdev ${Date.now().toString(36)}` }) });
+      const d = (await r.json().catch(() => ({}))) as { id?: string; totp?: { qr_code?: string; secret?: string } };
+      if (!r.ok || !d.id) { await log(env, req, me.id, 'mfa_enroll', 'auth', undefined, 'failure', `auth ${r.status}`); return json({ error: 'auth', detail: 'MFA belum bisa diaktifkan. Pastikan MFA TOTP aktif di Supabase → Authentication → Sign In / Providers.' }, 502); }
+      await log(env, req, me.id, 'mfa_enroll', 'auth');
+      return json({ factor_id: d.id, qr: d.totp?.qr_code || '', secret: d.totp?.secret || '' });
+    }
+    if (req.method === 'POST' && sub === 'verify') {
+      if (await overLimit(env.RATE_LIMITER, reqIp(req), 'mfa', 8)) return json({ error: 'rate_limited' }, 429);
+      let b: Record<string, unknown>;
+      try { b = JSON.parse(await req.text()); } catch { return json({ error: 'bad_json' }, 400); }
+      const factor = clean(b.factor_id, 64), code = clean(b.code, 12).replace(/\s/g, '');
+      if (!UUID.test(factor) || !totp.some(f => f.id === factor) || !/^\d{6}$/.test(code)) return json({ error: 'invalid' }, 422);
+      const res = await mfaVerify(env, me.token, factor, code);
+      if (!res) { await log(env, req, me.id, 'mfa', 'auth', undefined, 'failure', 'kode MFA salah saat pengaktifan'); return json({ error: 'invalid' }, 401); }
+      await log(env, req, me.id, 'mfa_enable', 'auth');
+      return json({ access_token: res.access_token, expires_in: res.expires_in });
+    }
+    if (req.method === 'DELETE' && sub && UUID.test(sub)) {
+      if (env.REQUIRE_MFA === '1') return json({ error: 'forbidden', detail: 'MFA diwajibkan (REQUIRE_MFA=1). Ubah dulu pengaturan itu bila memang ingin menonaktifkan.' }, 403);
+      if (!totp.some(f => f.id === sub)) return json({ error: 'not_found' }, 404);
+      const r = await authApi(env, `factors/${sub}`, me.token, { method: 'DELETE' });
+      await log(env, req, me.id, 'mfa_disable', 'auth', undefined, r.ok ? 'success' : 'failure', r.ok ? undefined : `auth ${r.status}`);
+      return r.ok ? json({ ok: true }) : json({ error: 'auth' }, 502);
+    }
+    return json({ error: 'method' }, 405);
   }
   if (what === 'logout-all' && req.method === 'POST') {
     // Cabut semua refresh token akun ini di Supabase (semua perangkat, termasuk yang sedang dipakai).
@@ -238,8 +339,10 @@ async function security(req: Request, env: Env, me: Me, what?: string): Promise<
         email: byId.get(p.user_id)?.email || '', last_sign_in_at: byId.get(p.user_id)?.last_sign_in_at || null })));
     }
     const u = new URL(req.url), res = u.searchParams.get('result') || '';
+    const flt = ['success', 'failure', 'denied'].includes(res) ? `&result=eq.${res}` : '';
+    if (u.searchParams.has('page')) { const x = await fetchRows(env, u, `activity_logs?select=*&order=created_at.desc${flt}`); return x.ok ? rowsRes(x) : json({ error: 'db' }, 500); }
     const limit = Math.max(1, Math.min(200, Number(u.searchParams.get('limit')) || 100));
-    return json(await rows(`activity_logs?select=*&order=created_at.desc&limit=${limit}${['success', 'failure', 'denied'].includes(res) ? `&result=eq.${res}` : ''}`));
+    return json(await rows(`activity_logs?select=*&order=created_at.desc&limit=${limit}${flt}`));
   }
   return json({ error: 'not_found' }, 404);
 }
@@ -273,7 +376,24 @@ async function pdfExport(req: Request, env: Env, me: Me, type?: string, docId?: 
   }
 }
 
-async function admin(req: Request, env: Env, parts: string[]): Promise<Response> {
+// Tabel yang memengaruhi konten publik: setelah berhasil diubah, cache /api/public/content dibuang.
+const PUBLIC_TABLES = new Set(['services', 'projects', 'project_categories', 'technologies', 'articles', 'testimonials', 'clients', 'settings', 'media']);
+async function purgePublic(req: Request, env: Env): Promise<void> {
+  const origins = [...new Set([new URL(req.url).origin, env.ALLOWED_ORIGIN].filter((x): x is string => !!x))];
+  // Cache API hanya berlaku per lokasi (datacenter): ini langsung menyegarkan lokasi yang dipakai admin.
+  await Promise.all(origins.map(o => caches.default.delete(new Request(o + '/api/public/content')).catch(() => false)));
+  // Opsional (CF_API_TOKEN + CF_ZONE_ID): purge URL yang sama di seluruh lokasi. Tanpa ini lokasi lain menyegarkan sendiri ≤ 60 detik.
+  if (env.CF_API_TOKEN && env.CF_ZONE_ID && /^[a-f0-9]{32}$/i.test(env.CF_ZONE_ID))
+    await fetch(`https://api.cloudflare.com/client/v4/zones/${env.CF_ZONE_ID}/purge_cache`, { method: 'POST',
+      headers: { Authorization: `Bearer ${env.CF_API_TOKEN}`, 'Content-Type': 'application/json' },
+      body: JSON.stringify({ files: origins.map(o => o + '/api/public/content') }) }).catch(e => console.error('purge', e));
+}
+async function admin(req: Request, env: Env, parts: string[], ctx: ExecutionContext): Promise<Response> {
+  const res = await adminHandle(req, env, parts);
+  if (req.method !== 'GET' && res.ok && PUBLIC_TABLES.has(parts[0] || '')) ctx.waitUntil(purgePublic(req, env));
+  return res;
+}
+async function adminHandle(req: Request, env: Env, parts: string[]): Promise<Response> {
   const origin = req.headers.get('Origin');
   if (req.method !== 'GET' && origin && origin !== (env.ALLOWED_ORIGIN || new URL(req.url).origin)) {
     await log(env, req, null, 'origin_check', 'admin', undefined, 'denied', origin.slice(0, 150));
@@ -291,7 +411,9 @@ async function admin(req: Request, env: Env, parts: string[]): Promise<Response>
     return json({ error: 'forbidden', detail: 'Peran akun ini tidak dikenal.' }, 403);
   }
   const [table, id, action] = parts;
-  if (table === 'security') return security(req, env, me, id);
+  // MFA wajib (REQUIRE_MFA=1): akun yang belum mengaktifkan MFA hanya boleh membuka tab Keamanan untuk mendaftarkannya.
+  if (env.REQUIRE_MFA === '1' && !me.mfa && table !== 'security') return json({ error: 'forbidden', detail: 'Aktifkan MFA dulu di tab Keamanan & Log.' }, 403);
+  if (table === 'security') return security(req, env, me, id, action);
   if (table === 'pdf') return pdfExport(req, env, me, id, action);
   const grp = GROUP[table];
   if (grp && !can(me.role, grp, LEVEL[req.method] || 'w')) {
@@ -319,7 +441,7 @@ async function admin(req: Request, env: Env, parts: string[]): Promise<Response>
   if (id && !UUID.test(id)) return json({ error: 'bad_id' }, 400);
 
   if (table === 'media') {
-    if (req.method === 'GET') return json(await sb(env, 'media?select=*&order=created_at.desc&limit=200').then(r => r.json()));
+    if (req.method === 'GET') { const x = await fetchRows(env, new URL(req.url), 'media?select=*&order=created_at.desc'); return x.ok ? rowsRes(x) : json({ error: 'db' }, 500); }
     if (req.method === 'POST') {
       const buf = await req.arrayBuffer();
       if (!buf.byteLength || buf.byteLength > 5_000_000) return json({ error: 'size' }, 413);
@@ -364,24 +486,24 @@ async function admin(req: Request, env: Env, parts: string[]): Promise<Response>
   const cfg = TABLES[table];
   if (!cfg) return json({ error: 'not_found' }, 404);
   if (req.method === 'GET' && table === 'projects') {
-    const r = await sb(env, `projects?select=*,project_technologies(technology_id,sort_order),project_media(object_key,alt_text,sort_order)&order=${cfg.order}&limit=200`);
-    if (!r.ok) return json({ error: 'db', detail: 'Jalankan ulang bagian "Portofolio ternormalisasi" di supabase/schema.sql' }, 500);
-    return json(((await r.json()) as any[]).map(({ project_technologies, project_media, ...p }) => ({ ...p,
+    const x = await fetchRows(env, new URL(req.url), `projects?select=*,project_technologies(technology_id,sort_order),project_media(object_key,alt_text,sort_order)&order=${cfg.order}`);
+    if (!x.ok) return json({ error: 'db', detail: 'Jalankan ulang bagian "Portofolio ternormalisasi" di supabase/schema.sql' }, 500);
+    return rowsRes(x, rs => rs.map(({ project_technologies, project_media, ...p }) => ({ ...p,
       technology_ids: [...project_technologies].sort((a: any, b: any) => (a.sort_order ?? 0) - (b.sort_order ?? 0)).map((x: any) => x.technology_id),
       gallery: [...project_media].sort((a: any, b: any) => (a.sort_order ?? 0) - (b.sort_order ?? 0)).map((g: any) => ({ object_key: g.object_key, alt_text: g.alt_text || '' })) })));
   }
   if (req.method === 'GET' && DOC_EMBED[table]) {
-    const r = await sb(env, `${table}?select=*,${DOC_EMBED[table][0]}(position,description,qty,unit_price)&order=${cfg.order}&limit=200`);
-    if (!r.ok) return json({ error: 'db', detail: 'Jalankan ulang bagian Fase 3 di supabase/schema.sql' }, 500);
-    return json(((await r.json()) as any[]).map(d => shapeDoc(table, d)));
+    const x = await fetchRows(env, new URL(req.url), `${table}?select=*,${DOC_EMBED[table][0]}(position,description,qty,unit_price)&order=${cfg.order}`);
+    if (!x.ok) return json({ error: 'db', detail: 'Jalankan ulang bagian Fase 3 di supabase/schema.sql' }, 500);
+    return rowsRes(x, rs => rs.map(d => shapeDoc(table, d)));
   }
   if (req.method === 'GET' && table === 'tasks') {
-    const r = await sb(env, `tasks?select=*,ms:projects_delivery(title)&order=${cfg.order}&limit=200`);
-    if (!r.ok) return json({ error: 'db', detail: 'Jalankan ulang bagian Fase 3 di supabase/schema.sql' }, 500);
+    const x = await fetchRows(env, new URL(req.url), `tasks?select=*,ms:projects_delivery(title)&order=${cfg.order}`);
+    if (!x.ok) return json({ error: 'db', detail: 'Jalankan ulang bagian Fase 3 di supabase/schema.sql' }, 500);
     // milestone (teks) tetap ada untuk tampilan: nama tonggak, atau teks lama bila belum dimigrasi
-    return json(((await r.json()) as any[]).map(({ ms, ...t }) => ({ ...t, milestone: ms?.title ?? t.milestone ?? null })));
+    return rowsRes(x, rs => rs.map(({ ms, ...t }) => ({ ...t, milestone: ms?.title ?? t.milestone ?? null })));
   }
-  if (req.method === 'GET') return json(await sb(env, `${table}?select=*&order=${cfg.order}&limit=200`).then(r => r.json()));
+  if (req.method === 'GET') { const x = await fetchRows(env, new URL(req.url), `${table}?select=*&order=${cfg.order}`); return x.ok ? rowsRes(x) : json({ error: 'db' }, 500); }
   if (req.method === 'DELETE') {
     if (cfg.del === false || !id) return json({ error: 'method' }, 405);
     const dr = await sb(env, `${table}?id=eq.${id}`, { method: 'DELETE' });
@@ -445,7 +567,7 @@ async function publicContent(req: Request, env: Env, ctx: ExecutionContext): Pro
     sb(env, 'site_settings?select=key,value').then(r => r.json()) as Promise<{ key: string; value: unknown }[]>,
   ]);
   const settings = Object.fromEntries((Array.isArray(st) ? st : []).map(x => [x.key, x.value]));
-  const res = json({ services, projects, testimonials, clients, articles, settings }, 200, { 'Cache-Control': 'public, max-age=30, s-maxage=60' });
+  const res = json({ services, projects, testimonials, clients, articles, settings }, 200, { 'Cache-Control': 'public, max-age=10, s-maxage=60' });
   ctx.waitUntil(cache.put(key, res.clone()));
   return res;
 }
@@ -477,12 +599,29 @@ async function handleLead(req: Request, env: Env, ctx: ExecutionContext): Promis
   return json({ ok: true }, 201);
 }
 
-async function media(env: Env, key: string): Promise<Response> {
+// Ukuran yang boleh diminta lewat ?w=… (daftar tetap agar tidak bisa dipakai membanjiri transformasi/cache).
+const IMG_WIDTHS = [320, 480, 640, 960, 1280, 1600, 1920];
+async function media(req: Request, env: Env, ctx: ExecutionContext, key: string): Promise<Response> {
   if (!/^uploads\/[0-9a-f-]{36}\.(png|jpg|webp|gif)$/.test(key)) return new Response('Not found', { status: 404 });
+  const url = new URL(req.url), w = Number(url.searchParams.get('w')), acc = req.headers.get('Accept') || '';
+  const fmt = /image\/avif/.test(acc) ? 'avif' : /image\/webp/.test(acc) ? 'webp' : '';
+  if (env.IMAGES && fmt && IMG_WIDTHS.includes(w) && !key.endsWith('.gif')) { // GIF dibiarkan utuh (bisa beranimasi)
+    const ck = new Request(`${url.origin}/media/${key}?w=${w}&f=${fmt}`);
+    const hit = await caches.default.match(ck);
+    if (hit) return hit;
+    const src = await env.MEDIA.get(key);
+    if (!src) return new Response('Not found', { status: 404 });
+    try {
+      const out = (await env.IMAGES.input(src.body).transform({ width: w, fit: 'scale-down' }).output({ format: `image/${fmt}`, quality: 82 })).response();
+      const res = new Response(out.body, { headers: { 'Content-Type': `image/${fmt}`, 'Cache-Control': 'public, max-age=31536000, immutable', Vary: 'Accept', 'X-Content-Type-Options': 'nosniff' } });
+      ctx.waitUntil(caches.default.put(ck, res.clone()));
+      return res;
+    } catch (e) { console.error('images', e); } // gagal mengubah → jatuh ke berkas asli di bawah
+  }
   const o = await env.MEDIA.get(key);
   if (!o) return new Response('Not found', { status: 404 });
   return new Response(o.body, { headers: { 'Content-Type': o.httpMetadata?.contentType || 'application/octet-stream',
-    'Cache-Control': 'public, max-age=31536000, immutable', 'X-Content-Type-Options': 'nosniff' } });
+    'Cache-Control': 'public, max-age=31536000, immutable', 'X-Content-Type-Options': 'nosniff', Vary: 'Accept' } });
 }
 
 export default {
@@ -496,8 +635,9 @@ export default {
       if (pathname === '/api/public/content' && req.method === 'GET') return publicContent(req, env, ctx);
       if (pathname === '/api/leads') return req.method === 'POST' ? handleLead(req, env, ctx) : json({ error: 'method' }, 405);
       if (pathname === '/api/auth/login') return req.method === 'POST' ? adminLogin(req, env) : json({ error: 'method' }, 405);
-      if (pathname.startsWith('/api/admin/')) return admin(req, env, pathname.slice(11).split('/').filter(Boolean));
-      if (pathname.startsWith('/media/') && req.method === 'GET') return media(env, pathname.slice(7));
+      if (pathname === '/api/auth/mfa') return req.method === 'POST' ? adminMfa(req, env) : json({ error: 'method' }, 405);
+      if (pathname.startsWith('/api/admin/')) return admin(req, env, pathname.slice(11).split('/').filter(Boolean), ctx);
+      if (pathname.startsWith('/media/') && req.method === 'GET') return media(req, env, ctx, pathname.slice(7));
       if (pathname.startsWith('/api/')) return json({ error: 'not_found' }, 404);
       const pg = await pages(req, env, pathname.replace(/(.)\/$/, '$1'));
       if (pg) return pg;

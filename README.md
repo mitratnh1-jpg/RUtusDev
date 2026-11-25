@@ -10,7 +10,7 @@ Struktur:
 - `SUPABASE_URL` + **anon** key (bukan service-role) cukup diisi sekali di `wrangler.jsonc`; Worker menyajikan `/admin/config.js` otomatis.
 - Buat user di Supabase → Authentication, lalu jalankan insert `admin_profiles` (ada di akhir schema.sql).
 - Buat bucket R2: `npx wrangler r2 bucket create rutusdev-media`.
-- Konten terbit muncul di situs publik (cache ±60 dtk). Aktifkan MFA untuk akun admin.
+- Konten terbit muncul di situs publik segera: cache konten publik dibuang otomatis saat admin menyimpan (lihat "Cache, MFA, gambar, paginasi").
 
 ## Setup
 1. Supabase: buat proyek → SQL Editor → jalankan `supabase/schema.sql`.
@@ -87,3 +87,10 @@ Skema mengikuti rancangan: `project_categories` (kategori, 1 per proyek lewat `p
 "Portofolio ternormalisasi" di `supabase/schema.sql`: tabel dibuat dan data lama (`category`, `technologies`) disalin otomatis.
 Kelola di admin: **Kategori proyek**, **Teknologi**, lalu pilih di form **Portofolio** (galeri: satu gambar per baris). Kolom lama tidak
 dibaca lagi; hapus setelah backfill diperiksa (perintah ada di akhir schema.sql). Halaman `/work/:slug` menampilkan galeri.
+
+## Cache, MFA, gambar, paginasi
+- **Panel admin = aplikasi React** (`web/admin/index.html` + `web/src/admin/*`, TypeScript), dibangun Vite bersama situs publik dan disajikan di `/admin/`. Halaman cetak (`web/public/admin/cetak.*`) masih HTML biasa.
+- **Invalidasi cache**: setiap simpan/hapus pada layanan, proyek, kategori, teknologi, artikel, testimoni, klien, pengaturan, dan media membuang cache `/api/public/content`. Cache API hanya per lokasi Cloudflare, jadi lokasi lain menyegarkan sendiri paling lambat ±60 dtk. Untuk purge di semua lokasi: isi `CF_ZONE_ID` di `wrangler.jsonc` dan `wrangler secret put CF_API_TOKEN` (token dengan izin *Cache Purge*). Browser pengunjung menyimpan maks. 10 dtk.
+- **MFA (TOTP)**: aktifkan di admin → Keamanan & Log → *Aktifkan MFA* (butuh MFA TOTP aktif di Supabase → Authentication). Setelah itu login meminta kode 6 digit dan API admin menolak token tanpa verifikasi (aal1). Setelah MFA terdaftar, set `REQUIRE_MFA` ke `"1"` di `wrangler.jsonc` untuk mewajibkannya (akun tanpa MFA hanya bisa membuka tab Keamanan). Jika kehilangan autentikator: hapus faktor di Supabase → Authentication → Users → user → Factors.
+- **Gambar responsif**: binding `IMAGES` (Cloudflare Images) menyajikan `/media/<kunci>?w=320|480|640|960|1280|1600|1920` sebagai AVIF/WebP sesuai peramban; hasil di-cache. Berkas asli di R2 tetap utuh dan jadi cadangan bila transformasi gagal atau binding tidak ada. GIF tidak diubah. Aktifkan Cloudflare Images di dashboard (kuota gratis 5.000 transformasi unik/bulan).
+- **Paginasi**: daftar admin 20 baris per halaman (`GET /api/admin/<tabel>?page=N` → `{rows,total,page,per}`; tanpa `page` tetap array maks. 200 untuk dropdown & dasbor). Log keamanan dan media juga dipaginasi. Daftar artikel publik: 12 per halaman (`/articles?page=N`).

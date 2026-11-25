@@ -5,6 +5,9 @@
   "observability": { "enabled": true },
   "assets": { "directory": "./web/dist", "binding": "ASSETS", "run_worker_first": ["/api/*", "/media/*", "/articles", "/articles/*", "/work/*", "/services/*", "/sitemap.xml", "/robots.txt", "/admin/config.js"] },
   "r2_buckets": [{ "binding": "MEDIA", "bucket_name": "rutusdev-media" }],
+  // Cloudflare Images (binding): gambar disajikan dalam AVIF/WebP dengan ukuran responsif (?w=…). Tanpa binding = berkas asli.
+  // Perlu mengaktifkan Images di dashboard Cloudflare (kuota gratis: 5.000 transformasi unik/bulan; hasilnya di-cache).
+  "images": { "binding": "IMAGES" },
   // Rate Limiting binding bawaan Cloudflare (aktif juga di *.workers.dev). period hanya boleh 10 atau 60 detik.
   "ratelimits": [
     { "name": "RATE_LIMITER", "namespace_id": "1001", "simple": { "limit": 5, "period": 60 } },
@@ -15,12 +18,17 @@
     "SUPABASE_URL": "https://GANTI.supabase.co",
     "SUPABASE_ANON_KEY": "GANTI_ANON_KEY",
     "ALLOWED_ORIGIN": "https://rutusdev.com",
+    // "1" = admin WAJIB MFA. Daftarkan MFA di tab Keamanan & Log dulu, baru ubah ke "1" (akun tanpa MFA jadi hanya bisa membuka tab itu).
+    "REQUIRE_MFA": "0",
     // Site key Turnstile (publik). Dipakai juga oleh halaman login admin.
     "TURNSTILE_SITE_KEY": "GANTI_TURNSTILE_SITE_KEY",
     // Notifikasi lead via email (Resend). Secret RESEND_API_KEY diset lewat `wrangler secret put`.
     "NOTIFY_TO": "",
     "NOTIFY_FROM": "RUtusdev <leads@rutusdev.com>",
     // Token Cloudflare Web Analytics (kosong = nonaktif)
-    "CF_BEACON_TOKEN": ""
+    "CF_BEACON_TOKEN": "",
+    // Opsional: purge cache konten publik di SEMUA lokasi saat admin menyimpan. Isi CF_ZONE_ID (ID zona, bukan rahasia);
+    // token API (izin Cache Purge) diset lewat `wrangler secret put CF_API_TOKEN`. Kosong = lokasi lain menyegarkan sendiri ≤ 60 dtk.
+    "CF_ZONE_ID": ""
   }
 }

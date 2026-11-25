@@ -5,6 +5,7 @@ import Deck from './Deck';
 import Reveal from './Reveal';
 import { onScrollFrame, clamp, reducedMotion } from './scroll';
 import { useContent } from './useContent';
+import { imgProps } from './media';
 import type { Article, Client, Project, Service, Stats, Testimonial } from './types';
 
 const STEPS = [
@@ -118,7 +119,7 @@ function Hero({ h, clients = [] }: { h: { eyebrow?: string; headline?: string; h
       </div>
       {/* Jejak kepercayaan di dasar hero (tablet & desktop): logo klien bila ada, selain itu teknologi yang dipakai */}
       <div className="wrap hero-logos" aria-label={logos.length ? 'Klien' : 'Teknologi'}>
-        {logos.length ? logos.map(c => <img key={c.name} src={`/media/${c.logo_key}`} alt={c.name} loading="lazy" />) : HERO_STACK.map((w, i) => <StackSlot key={w[0]} words={w} offset={i * 450} />)}
+        {logos.length ? logos.map(c => <img key={c.name} {...imgProps(c.logo_key!, '150px', 320)} alt={c.name} loading="lazy" />) : HERO_STACK.map((w, i) => <StackSlot key={w[0]} words={w} offset={i * 450} />)}
       </div>
       <i className="corners bottom" aria-hidden="true" />
     </section>
@@ -164,7 +165,7 @@ function ProjectCard({ p }: { p: Project }) {
     <article className="dcard">
       <div className="dhead"><h3>{p.slug && SLUG.test(p.slug) ? <a href={`/work/${p.slug}`}>{p.title}</a> : p.title}</h3>
         {p.slug && SLUG.test(p.slug) && <a className="pillbtn" href={`/work/${p.slug}`}>Selengkapnya <i>↳</i></a>}</div>
-      {p.cover_key && COVER.test(p.cover_key) && <img className="cover" loading="lazy" src={`/media/${p.cover_key}`} alt={p.title} />}
+      {p.cover_key && COVER.test(p.cover_key) && <img className="cover" loading="lazy" {...imgProps(p.cover_key, '(max-width: 760px) 100vw, 640px', 960)} alt={p.title} />}
       <p>{p.summary}</p><p className="meta">{meta}</p>
       {demo && <p className="links"><a href={demo} target="_blank" rel="noopener noreferrer">Lihat demo <i>→</i></a></p>}
     </article>
@@ -325,7 +326,7 @@ function Clients({ items }: { items: Client[] }) {
         <p className="pill">Klien</p>
         <h2><b>Dipercaya oleh</b> <span>tim dan bisnis yang kami dampingi.</span></h2>
         <ul className="cl-grid">{list.map(c => {
-          const url = httpUrl(c.website_url), img = <img loading="lazy" src={`/media/${c.logo_key}`} alt={c.name} />;
+          const url = httpUrl(c.website_url), img = <img loading="lazy" {...imgProps(c.logo_key!, '160px', 320)} alt={c.name} />;
           return <li key={c.name}>{url ? <a href={url} target="_blank" rel="noopener noreferrer" aria-label={c.name}>{img}</a> : img}</li>;
         })}</ul>
       </div>
@@ -338,7 +339,7 @@ function ArticleCard({ a, i }: { a: Article; i: number }) {
   return (
     <article className="acard">
       <a className={'acover g' + (i % 3)} href={href}>
-        {a.cover_key && COVER.test(a.cover_key) && <img loading="lazy" src={`/media/${a.cover_key}`} alt={a.title} />}
+        {a.cover_key && COVER.test(a.cover_key) && <img loading="lazy" {...imgProps(a.cover_key, '(max-width: 760px) 100vw, 400px', 640)} alt={a.title} />}
         {a.created_at && <span className="date">{tanggal(a.created_at)}</span>}
       </a>
       <div className="atitle"><h3><a href={href}>{a.title}</a></h3><a className="pillbtn light" href={href}>Baca</a></div>

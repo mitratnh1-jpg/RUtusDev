@@ -25,6 +25,12 @@ function paras(src: unknown): string {
   fp(); fl(); return out.join('');
 }
 const ld = (o: unknown) => `<script type="application/ld+json">${JSON.stringify(o).replace(/</g, '\\u003c')}</script>`;
+// <img> responsif: lebar 320–1280 piksel, format AVIF/WebP dipilih Worker sesuai peramban (lihat media() di index.ts).
+const pic = (key: unknown, alt: string, sizes: string, extra = '') => {
+  const k = esc(key);
+  return /\.gif$/.test(String(key)) ? `<img ${extra} src="/media/${k}" alt="${esc(alt)}">`
+    : `<img ${extra} src="/media/${k}?w=960" srcset="${[320, 640, 960, 1280].map(w => `/media/${k}?w=${w} ${w}w`).join(', ')}" sizes="${sizes}" alt="${esc(alt)}">`;
+};
 const safeUrl = (u: unknown) => (/^https?:\/\//.test(String(u ?? '')) ? esc(u) : '');
 
 async function get<T = any[]>(env: Env, path: string): Promise<T> {
@@ -75,10 +81,15 @@ export async function pages(req: Request, env: Env, path: string): Promise<Respo
   }
 
   if (path === '/articles') {
-    const a = await get(env, 'articles?status=eq.published&select=title,slug,excerpt,created_at&order=created_at.desc&limit=50');
-    return layout(origin, { title: 'Artikel — RUtusdev', desc: 'Catatan tentang pengembangan website, web application, dan solusi digital.', path,
+    // Paginasi: 12 artikel per halaman (?page=N). Mengambil satu baris ekstra untuk tahu apakah masih ada halaman berikutnya.
+    const per = 12, pg = Math.max(1, Math.min(1000, Math.floor(Number(new URL(req.url).searchParams.get('page'))) || 1));
+    const all = await get(env, `articles?status=eq.published&select=title,slug,excerpt,created_at&order=created_at.desc&limit=${per + 1}&offset=${(pg - 1) * per}`);
+    const more = all.length > per, a = all.slice(0, per);
+    if (pg > 1 && !a.length) return notFound(origin);
+    const pager = pg > 1 || more ? `<nav class="pager" aria-label="Halaman artikel">${pg > 1 ? `<a rel="prev" href="${pg === 2 ? '/articles' : '/articles?page=' + (pg - 1)}">← Lebih baru</a>` : '<span></span>'}<small>Halaman ${pg}</small>${more ? `<a rel="next" href="/articles?page=${pg + 1}">Lebih lama →</a>` : '<span></span>'}</nav>` : '';
+    return layout(origin, { title: pg > 1 ? `Artikel (halaman ${pg}) — RUtusdev` : 'Artikel — RUtusdev', desc: 'Catatan tentang pengembangan website, web application, dan solusi digital.', path: pg > 1 ? `/articles?page=${pg}` : path,
       body: `<h1>Artikel</h1><div class="list">${a.length ? a.filter((x: any) => SLUG.test(x.slug || '')).map((x: any) =>
-        `<a class="item" href="/articles/${x.slug}"><small>${esc((x.created_at || '').slice(0, 10))}</small><h2>${esc(x.title)}</h2><p>${esc(x.excerpt)}</p></a>`).join('') : '<p>Belum ada artikel.</p>'}</div>` });
+        `<a class="item" href="/articles/${x.slug}"><small>${esc((x.created_at || '').slice(0, 10))}</small><h2>${esc(x.title)}</h2><p>${esc(x.excerpt)}</p></a>`).join('') : '<p>Belum ada artikel.</p>'}</div>${pager}` });
   }
 
   const m = path.match(/^\/(articles|work|services)\/([^/]+)$/);
@@ -100,7 +111,7 @@ export async function pages(req: Request, env: Env, path: string): Promise<Respo
         ld: { '@context': 'https://schema.org', '@type': 'Article', headline: a.title, description: a.seo_description || a.excerpt, datePublished: a.created_at,
           mainEntityOfPage: origin + path, publisher: { '@type': 'Organization', name: 'RUtusdev' }, ...(a.cover_key ? { image: `${origin}/media/${a.cover_key}` } : {}) },
         body: `<p><a href="/articles">← Artikel</a></p><h1>${esc(a.title)}</h1><p class="meta">${esc((a.created_at || '').slice(0, 10))}</p>${
-          a.cover_key ? `<img class="cover" src="/media/${esc(a.cover_key)}" alt="${esc(a.title)}">` : ''}<div class="prose">${paras(a.body)}</div>` });
+          a.cover_key ? pic(a.cover_key, a.title, '(max-width: 760px) 100vw, 800px', 'class="cover"') : ''}<div class="prose">${paras(a.body)}</div>` });
     }
     const [raw] = await get(env, `projects?slug=eq.${slug}&status=eq.published&select=${PROJECT_COLS},${PROJECT_EMBED}&limit=1`);
     if (!raw) return notFound(origin);
@@ -110,9 +121,9 @@ export async function pages(req: Request, env: Env, path: string): Promise<Respo
       ld: { '@context': 'https://schema.org', '@type': 'CreativeWork', name: p.title, description: p.summary, creator: { '@type': 'Organization', name: 'RUtusdev' },
         datePublished: p.published_at || p.created_at, ...(demo ? { url: demo } : {}), ...(p.cover_key ? { image: `${origin}/media/${p.cover_key}` } : {}) },
       body: `<p><a href="/#work">← Karya pilihan</a></p><h1>${esc(p.title)}</h1><p class="lead">${esc(p.summary)}</p>${
-        p.cover_key ? `<img class="cover" src="/media/${esc(p.cover_key)}" alt="${esc(p.title)}">` : ''}<p class="chips">${
+        p.cover_key ? pic(p.cover_key, p.title, '(max-width: 760px) 100vw, 800px', 'class="cover"') : ''}<p class="chips">${
         [p.category, ...tech].filter(Boolean).map(t => `<span>${esc(t)}</span>`).join('')}</p><div class="prose">${paras(p.body)}</div>${
-        gal.length ? `<div class="gallery">${gal.map(g => `<img loading="lazy" src="/media/${esc(g.object_key)}" alt="${esc(g.alt_text || p.title)}">`).join('')}</div>` : ''}${
+        gal.length ? `<div class="gallery">${gal.map(g => pic(g.object_key, g.alt_text || p.title, '(max-width: 760px) 100vw, 50vw', 'loading="lazy"')).join('')}</div>` : ''}${
         demo ? `<p><a class="btn btn-blue" href="${demo}" target="_blank" rel="noopener">Lihat demo langsung</a></p>` : ''}` });
   }
   return null;

@@ -724,3 +724,7 @@ button:focus-visible, a:focus-visible {
 @keyframes slot-in{from{transform:translateY(110%);opacity:0}to{transform:none;opacity:1}}
 @keyframes slot-out{from{transform:none;opacity:1}to{transform:translateY(-110%);opacity:0}}
 @media(prefers-reduced-motion:reduce){.slot-w.in,.slot-w.out{animation:none}}
+
+/* Navigasi halaman (daftar artikel) */
+.pager{display:flex;justify-content:space-between;align-items:center;gap:16px;margin-top:32px;padding-top:20px;border-top:1px solid rgba(128,128,128,.25)}
+.pager a{font-weight:600;text-decoration:underline;text-underline-offset:4px}.pager small{opacity:.6}
