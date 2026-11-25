@@ -59,7 +59,7 @@ function Nav() {
   );
 }
 
-const STACK = ['Cloudflare', 'Supabase', 'React', 'TypeScript', 'PostgreSQL'];
+const HERO_STACK = ['Cloudflare', 'Supabase', 'React', 'TypeScript', 'PostgreSQL'];
 function Hero({ h, clients = [] }: { h: { eyebrow?: string; headline?: string; headline_dim?: string; subheadline?: string; cta_primary?: string; cta_secondary?: string }; clients?: Client[] }) {
   const logos = clients.filter(c => c.logo_key && COVER.test(c.logo_key)).slice(0, 5);
   const root = useRef<HTMLElement>(null);
@@ -92,7 +92,7 @@ function Hero({ h, clients = [] }: { h: { eyebrow?: string; headline?: string; h
       </div>
       {/* Jejak kepercayaan di dasar hero (tablet & desktop): logo klien bila ada, selain itu teknologi yang dipakai */}
       <div className="wrap hero-logos" aria-label={logos.length ? 'Klien' : 'Teknologi'}>
-        {logos.length ? logos.map(c => <img key={c.name} src={`/media/${c.logo_key}`} alt={c.name} loading="lazy" />) : STACK.map(t => <span key={t}>{t}</span>)}
+        {logos.length ? logos.map(c => <img key={c.name} src={`/media/${c.logo_key}`} alt={c.name} loading="lazy" />) : HERO_STACK.map(t => <span key={t}>{t}</span>)}
       </div>
       <i className="corners bottom" aria-hidden="true" />
     </section>
