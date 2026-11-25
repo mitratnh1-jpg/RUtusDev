@@ -181,8 +181,11 @@ async function adminLogin(req: Request, env: Env): Promise<Response> {
     await log(env, req, null, 'login', 'auth', undefined, 'failure', email);
     return r.status === 429 ? json({ error: 'rate_limited' }, 429) : json({ error: 'invalid' }, 401);
   }
-  const p = (await sb(env, `admin_profiles?user_id=eq.${uid}&select=role`).then(x => x.json())) as { role: string }[];
-  if (!Array.isArray(p) || !p[0] || !PERM[p[0].role]) {
+  const pr = await sb(env, `admin_profiles?user_id=eq.${uid}&select=role`);
+  const p = (pr.ok ? await pr.json().catch(() => null) : null) as { role: string }[] | null;
+  // Pencarian profil gagal (mis. SUPABASE_SERVICE_ROLE_KEY salah) = masalah konfigurasi server, bukan kredensial salah.
+  if (!Array.isArray(p)) { console.error('login: admin_profiles gagal', pr.status); return json({ error: 'auth' }, 502); }
+  if (!p[0] || !PERM[p[0].role]) {
     await log(env, req, uid, 'login', 'auth', undefined, 'denied', 'bukan admin / peran tidak dikenal');
     return json({ error: 'invalid' }, 401); // pesan sama dengan kredensial salah agar tidak membocorkan akun
   }
