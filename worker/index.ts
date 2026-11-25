@@ -1,4 +1,5 @@
 import { pages } from './pages';
+import { buildPdf } from './pdf';
 import { PROJECT_EMBED, PROJECT_LIST_COLS, shapeProject } from './projects';
 
 export interface Env {
@@ -13,7 +14,7 @@ export interface Env {
 type Cfg = { cols: string[]; order: string; create?: boolean; del?: boolean };
 const TABLES: Record<string, Cfg> = {
   services: { cols: ['title','slug','summary','description','icon','sort_order','is_published'], order: 'sort_order.asc' },
-  projects: { cols: ['title','slug','summary','body','category_id','cover_key','demo_url','featured','is_published'], order: 'created_at.desc' },
+  projects: { cols: ['title','slug','summary','body','category_id','cover_key','demo_url','featured','status'], order: 'created_at.desc' },
   project_categories: { cols: ['name','slug','sort_order'], order: 'sort_order.asc' },
   technologies: { cols: ['name','slug'], order: 'name.asc' },
   articles: { cols: ['title','slug','excerpt','body','seo_title','seo_description','cover_key','status'], order: 'created_at.desc' },
@@ -25,9 +26,10 @@ const TABLES: Record<string, Cfg> = {
   deals: { cols: ['title','organization_id','contact_id','value','stage','source','expected_close','notes'], order: 'created_at.desc' },
   interactions: { cols: ['deal_id','kind','note'], order: 'created_at.desc' },
   activity_logs: { cols: [], order: 'created_at.desc', create: false, del: false },
-  proposals: { cols: ['number','title','deal_id','status','valid_until','items','scope','terms'], order: 'created_at.desc' },
-  invoices: { cols: ['number','title','deal_id','organization_id','status','issue_date','due_date','items','paid_amount','notes'], order: 'created_at.desc' },
-  tasks: { cols: ['title','deal_id','milestone','status','priority','due_date','notes'], order: 'due_date.asc.nullslast' },
+  proposals: { cols: ['number','title','deal_id','status','valid_until','scope','terms'], order: 'created_at.desc' },
+  invoices: { cols: ['number','title','deal_id','organization_id','status','issue_date','due_date','paid_amount','notes'], order: 'created_at.desc' },
+  tasks: { cols: ['title','deal_id','milestone_id','status','priority','due_date','notes'], order: 'due_date.asc.nullslast' },
+  projects_delivery: { cols: ['deal_id','title','sort_order','status','due_date','notes'], order: 'due_date.asc.nullslast' },
 };
 const UUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/;
 const SETTINGS: Record<string, string[]> = {
@@ -87,29 +89,83 @@ const sb = (env: Env, path: string, init: RequestInit = {}) =>
     apikey: env.SUPABASE_SERVICE_ROLE_KEY, Authorization: `Bearer ${env.SUPABASE_SERVICE_ROLE_KEY}`,
     'Content-Type': 'application/json', ...(init.headers as object) } });
 
-// Verifikasi token ke Supabase Auth, lalu cek role di admin_profiles
-async function auth(req: Request, env: Env) {
+// Peran & hak akses. Tingkat: r = baca, w = tulis (buat/ubah), d = hapus.
+// Peran yang tidak dikenal tidak punya hak apa pun (fail closed).
+type Level = 'r' | 'w' | 'd';
+const PERM: Record<string, Record<string, string>> = {
+  admin:  { content: 'rwd', crm: 'rwd', finance: 'rwd', logs: 'r' },
+  editor: { content: 'rw',  crm: '',    finance: '',    logs: '' },
+  viewer: { content: 'r',   crm: 'r',   finance: 'r',   logs: '' },
+};
+const GROUP: Record<string, string> = {
+  services: 'content', projects: 'content', project_categories: 'content', technologies: 'content', articles: 'content',
+  testimonials: 'content', clients: 'content', media: 'content', settings: 'content',
+  leads: 'crm', organizations: 'crm', contacts: 'crm', deals: 'crm', interactions: 'crm', tasks: 'crm', projects_delivery: 'crm',
+  proposals: 'finance', invoices: 'finance', activity_logs: 'logs',
+};
+const can = (role: string, group: string, lv: Level) => (PERM[role]?.[group] || '').includes(lv);
+const LEVEL: Record<string, Level> = { GET: 'r', POST: 'w', PUT: 'w', PATCH: 'w', DELETE: 'd' };
+const VERB: Record<string, string> = { GET: 'read', POST: 'create', PUT: 'update', PATCH: 'update', DELETE: 'delete' };
+
+type Me = { id: string; role: string; email: string; name: string; lastSignIn: string | null; token: string };
+// Verifikasi token ke Supabase Auth, lalu ambil peran dari admin_profiles
+async function auth(req: Request, env: Env): Promise<Me | null> {
   const t = (req.headers.get('Authorization') || '').replace(/^Bearer /, '');
   if (!t) return null;
   const r = await fetch(`${env.SUPABASE_URL}/auth/v1/user`, { headers: { apikey: env.SUPABASE_ANON_KEY, Authorization: `Bearer ${t}` } });
   if (!r.ok) return null;
-  const u = (await r.json()) as { id?: string };
+  const u = (await r.json()) as { id?: string; email?: string; last_sign_in_at?: string };
   if (!u.id || !UUID.test(u.id)) return null;
-  const p = (await sb(env, `admin_profiles?user_id=eq.${u.id}&select=role`).then(x => x.json())) as { role: string }[];
-  return Array.isArray(p) && p[0] ? { id: u.id, role: p[0].role } : null;
+  const p = (await sb(env, `admin_profiles?user_id=eq.${u.id}&select=role,display_name`).then(x => x.json())) as { role: string; display_name: string | null }[];
+  return Array.isArray(p) && p[0]
+    ? { id: u.id, role: String(p[0].role || ''), email: u.email || '', name: p[0].display_name || '', lastSignIn: u.last_sign_in_at || null, token: t }
+    : null;
 }
-const log = (env: Env, actor: string, action: string, entity: string, id?: string) =>
-  sb(env, 'activity_logs', { method: 'POST', body: JSON.stringify({ actor_id: actor, action, entity, entity_id: id ?? null }) });
+// Klaim JWT yang sudah diverifikasi Supabase; hanya untuk ditampilkan (kapan sesi terbit/habis).
+function jwtMeta(t: string): { iat?: number; exp?: number; session_id?: string } {
+  try { const p = JSON.parse(atob(t.split('.')[1].replace(/-/g, '+').replace(/_/g, '/'))); return { iat: p.iat, exp: p.exp, session_id: p.session_id }; } catch { return {}; }
+}
+const reqIp = (req: Request) => req.headers.get('CF-Connecting-IP') || 'unknown';
+// Catat aktivitas beserta hasil, IP, dan user agent. Kegagalan menulis log tidak boleh menggagalkan permintaan.
+// result: success | failure (gagal teknis / kredensial salah) | denied (ditolak karena hak akses)
+const log = (env: Env, req: Request, actor: string | null, action: string, entity: string, id?: string, result: 'success' | 'failure' | 'denied' = 'success', detail?: string) =>
+  sb(env, 'activity_logs', { method: 'POST', body: JSON.stringify({ actor_id: actor, action, entity, entity_id: id ?? null, result,
+    ip: reqIp(req).slice(0, 64), user_agent: (req.headers.get('User-Agent') || '').slice(0, 300) || null, detail: detail ? detail.slice(0, 300) : null }) }).catch(e => console.error('log', e));
+
+// Login admin lewat Worker supaya percobaan berhasil/gagal tercatat lengkap dengan IP & perangkat.
+async function adminLogin(req: Request, env: Env): Promise<Response> {
+  const origin = req.headers.get('Origin');
+  if (origin && origin !== (env.ALLOWED_ORIGIN || new URL(req.url).origin)) return json({ error: 'forbidden' }, 403);
+  if (await overLimit(env.RATE_LIMITER, reqIp(req), 'login', 8)) return json({ error: 'rate_limited' }, 429);
+  const raw = await req.text();
+  if (raw.length > 4000) return json({ error: 'too_large' }, 413);
+  let b: Record<string, unknown>;
+  try { b = JSON.parse(raw); } catch { return json({ error: 'bad_json' }, 400); }
+  const email = clean(b.email, 150).toLowerCase(), password = typeof b.password === 'string' ? b.password.slice(0, 200) : '', captcha = clean(b.captcha, 2048);
+  if (!email || !password) return json({ error: 'invalid' }, 422);
+  const r = await fetch(`${env.SUPABASE_URL}/auth/v1/token?grant_type=password`, { method: 'POST',
+    headers: { apikey: env.SUPABASE_ANON_KEY, 'Content-Type': 'application/json' },
+    body: JSON.stringify({ email, password, ...(captcha ? { gotrue_meta_security: { captcha_token: captcha } } : {}) }) });
+  const d = (await r.json().catch(() => ({}))) as { access_token?: string; expires_in?: number; user?: { id?: string } };
+  const uid = d.user?.id && UUID.test(d.user.id) ? d.user.id : null;
+  if (!r.ok || !d.access_token || !uid) {
+    await log(env, req, null, 'login', 'auth', undefined, 'failure', email);
+    return r.status === 429 ? json({ error: 'rate_limited' }, 429) : json({ error: 'invalid' }, 401);
+  }
+  const p = (await sb(env, `admin_profiles?user_id=eq.${uid}&select=role`).then(x => x.json())) as { role: string }[];
+  if (!Array.isArray(p) || !p[0] || !PERM[p[0].role]) {
+    await log(env, req, uid, 'login', 'auth', undefined, 'denied', 'bukan admin / peran tidak dikenal');
+    return json({ error: 'invalid' }, 401); // pesan sama dengan kredensial salah agar tidak membocorkan akun
+  }
+  await log(env, req, uid, 'login', 'auth', undefined, 'success', `role=${p[0].role}`);
+  return json({ access_token: d.access_token, expires_in: d.expires_in ?? 3600 });
+}
 
 function pick(cfg: Cfg, body: Record<string, unknown>) {
   const o: Record<string, unknown> = {};
   for (const c of cfg.cols) if (c in body) {
     let v = body[c];
     if (c.endsWith('_id') && typeof v === 'string' && v && !UUID.test(v)) continue;
-    if (c === 'items') {
-      const a = Array.isArray(v) ? v.slice(0, 50) : [];
-      v = a.map((x: any) => ({ desc: clean(x?.desc, 200), qty: Math.max(0, Math.min(1e6, Number(x?.qty) || 0)), price: Math.max(0, Math.min(1e12, Number(x?.price) || 0)) })).filter(x => x.desc);
-    }
     if (c === 'value' || c === 'paid_amount') v = Math.max(0, Math.min(1e13, Number(v) || 0));
     if (typeof v === 'string') v = v.slice(0, c === 'body' || c === 'description' ? 20000 : 2000);
     o[c] = v === '' ? null : v;
@@ -117,6 +173,19 @@ function pick(cfg: Cfg, body: Record<string, unknown>) {
   return o;
 }
 
+// Rincian penawaran/faktur: dibersihkan lalu diganti utuh dalam satu transaksi lewat RPC replace_document_items.
+const cleanItems = (v: unknown) => (Array.isArray(v) ? v.slice(0, 50) : []).map((x: any) => ({ desc: clean(x?.desc, 200),
+  qty: Math.round(Math.max(0, Math.min(1e6, Number(x?.qty) || 0)) * 100) / 100, price: Math.round(Math.max(0, Math.min(1e12, Number(x?.price) || 0))) })).filter(x => x.desc);
+async function syncItems(env: Env, kind: 'proposal' | 'invoice', docId: string, items: unknown): Promise<boolean> {
+  const r = await sb(env, 'rpc/replace_document_items', { method: 'POST', body: JSON.stringify({ p_kind: kind, p_id: docId, p_items: cleanItems(items) }) });
+  return r.ok;
+}
+// Bentuk keluaran tetap kompatibel dengan admin & cetak: items = [{desc, qty, price}].
+const DOC_EMBED: Record<string, [string, string]> = { proposals: ['proposal_items', 'proposal'], invoices: ['invoice_items', 'invoice'] };
+function shapeDoc(table: string, d: any) {
+  const key = DOC_EMBED[table][0], { [key]: rows, items: legacy, ...rest } = d;
+  return { ...rest, items: ((rows || []) as any[]).sort((a, b) => (a.position ?? 0) - (b.position ?? 0)).map(x => ({ desc: x.description, qty: Number(x.qty), price: Number(x.unit_price) })) };
+}
 const slugify = (t: string) => t.toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/^-+|-+$/g, '').slice(0, 100);
 const MEDIA_KEY = /^uploads\/[0-9a-f-]{36}\.(png|jpg|webp|gif)$/;
 // Sinkronkan relasi proyek (teknologi & galeri). Hanya yang dikirim di body yang diubah.
@@ -138,13 +207,97 @@ async function syncProject(env: Env, projectId: string, body: Record<string, unk
   return null;
 }
 
+// Halaman Keamanan: profil & sesi sendiri (semua peran); daftar admin dan log lengkap (hanya yang boleh membaca log).
+async function security(req: Request, env: Env, me: Me, what?: string): Promise<Response> {
+  const rows = async (path: string) => { const r = await sb(env, path); const d = r.ok ? await r.json() : []; return Array.isArray(d) ? (d as any[]) : []; };
+  if (what === 'me' && req.method === 'GET') {
+    const j = jwtMeta(me.token);
+    const logins = await rows(`activity_logs?actor_id=eq.${me.id}&action=eq.login&result=eq.success&select=created_at,ip,user_agent&order=created_at.desc&limit=5`);
+    return json({ id: me.id, email: me.email, name: me.name, role: me.role, perm: PERM[me.role], last_sign_in_at: me.lastSignIn,
+      session: { issued_at: j.iat ? new Date(j.iat * 1000).toISOString() : null, expires_at: j.exp ? new Date(j.exp * 1000).toISOString() : null,
+        ip: reqIp(req), user_agent: (req.headers.get('User-Agent') || '').slice(0, 300) }, recent_logins: logins });
+  }
+  if (what === 'logout-all' && req.method === 'POST') {
+    // Cabut semua refresh token akun ini di Supabase (semua perangkat, termasuk yang sedang dipakai).
+    const r = await fetch(`${env.SUPABASE_URL}/auth/v1/logout?scope=global`, { method: 'POST', headers: { apikey: env.SUPABASE_ANON_KEY, Authorization: `Bearer ${me.token}` } });
+    await log(env, req, me.id, 'logout_all', 'auth', undefined, r.ok ? 'success' : 'failure', r.ok ? undefined : `auth ${r.status}`);
+    return r.ok ? json({ ok: true }) : json({ error: 'auth' }, 502);
+  }
+  if (what === 'admins' || what === 'logs') {
+    if (!can(me.role, 'logs', 'r')) {
+      await log(env, req, me.id, 'read', `security/${what}`, undefined, 'denied', `role=${me.role}`);
+      return json({ error: 'forbidden', detail: 'Peran Anda tidak boleh melihat data ini.' }, 403);
+    }
+    if (req.method !== 'GET') return json({ error: 'method' }, 405);
+    if (what === 'admins') {
+      const [profiles, users] = await Promise.all([rows('admin_profiles?select=user_id,display_name,role,created_at&order=created_at.asc&limit=100'),
+        fetch(`${env.SUPABASE_URL}/auth/v1/admin/users?per_page=200`, { headers: { apikey: env.SUPABASE_SERVICE_ROLE_KEY, Authorization: `Bearer ${env.SUPABASE_SERVICE_ROLE_KEY}` } })
+          .then(r => (r.ok ? r.json() : { users: [] })).catch(() => ({ users: [] })) as Promise<{ users?: any[] }>]);
+      const byId = new Map((users.users || []).map((u: any) => [u.id, u]));
+      return json(profiles.map(p => ({ user_id: p.user_id, name: p.display_name || '', role: p.role, created_at: p.created_at,
+        email: byId.get(p.user_id)?.email || '', last_sign_in_at: byId.get(p.user_id)?.last_sign_in_at || null })));
+    }
+    const u = new URL(req.url), res = u.searchParams.get('result') || '';
+    const limit = Math.max(1, Math.min(200, Number(u.searchParams.get('limit')) || 100));
+    return json(await rows(`activity_logs?select=*&order=created_at.desc&limit=${limit}${['success', 'failure', 'denied'].includes(res) ? `&result=eq.${res}` : ''}`));
+  }
+  return json({ error: 'not_found' }, 404);
+}
+
+// GET /api/admin/pdf/<proposal|invoice>/<uuid> → berkas PDF. Hak akses mengikuti penawaran/faktur (finance, baca).
+async function pdfExport(req: Request, env: Env, me: Me, type?: string, docId?: string): Promise<Response> {
+  if (req.method !== 'GET' || (type !== 'proposal' && type !== 'invoice') || !docId || !UUID.test(docId)) return json({ error: 'bad_request' }, 400);
+  const table = type === 'invoice' ? 'invoices' : 'proposals';
+  if (!can(me.role, 'finance', 'r')) {
+    await log(env, req, me.id, 'export', table, docId, 'denied', `role=${me.role}`);
+    return json({ error: 'forbidden', detail: 'Peran Anda tidak boleh mengunduh dokumen ini.' }, 403);
+  }
+  const rows = async (path: string) => { const r = await sb(env, path); const d = r.ok ? await r.json() : null; return Array.isArray(d) ? (d as any[]) : null; };
+  const [raw] = (await rows(`${table}?id=eq.${docId}&select=*,${DOC_EMBED[table][0]}(position,description,qty,unit_price)&limit=1`)) || [];
+  if (!raw) { await log(env, req, me.id, 'export', table, docId, 'failure', 'tidak ditemukan'); return json({ error: 'not_found' }, 404); }
+  const d = shapeDoc(table, raw);
+  const [deal] = d.deal_id ? (await rows(`deals?id=eq.${d.deal_id}&select=organization_id,contact_id&limit=1`)) || [] : [];
+  const orgId = d.organization_id || deal?.organization_id, conId = deal?.contact_id;
+  const [org] = orgId && UUID.test(orgId) ? (await rows(`organizations?id=eq.${orgId}&select=name&limit=1`)) || [] : [];
+  const [con] = conId && UUID.test(conId) ? (await rows(`contacts?id=eq.${conId}&select=name,email&limit=1`)) || [] : [];
+  const [st] = (await rows('site_settings?key=eq.contact&select=value&limit=1')) || [];
+  try {
+    const bytes = await buildPdf({ type, doc: d, to: { org: org?.name, contact: con?.name, email: con?.email }, site: st?.value || {} });
+    await log(env, req, me.id, 'export', table, docId);
+    return new Response(bytes, { headers: { 'Content-Type': 'application/pdf', 'Cache-Control': 'no-store', 'X-Content-Type-Options': 'nosniff',
+      'Content-Disposition': `attachment; filename="${String(d.number || type).replace(/[^A-Za-z0-9._-]/g, '_')}.pdf"` } });
+  } catch (e) {
+    console.error('pdf', e);
+    await log(env, req, me.id, 'export', table, docId, 'failure', 'gagal membuat PDF');
+    return json({ error: 'pdf' }, 500);
+  }
+}
+
 async function admin(req: Request, env: Env, parts: string[]): Promise<Response> {
   const origin = req.headers.get('Origin');
-  if (req.method !== 'GET' && origin && origin !== (env.ALLOWED_ORIGIN || new URL(req.url).origin)) return json({ error: 'forbidden' }, 403);
-  if (await overLimit(env.RATE_LIMITER_ADMIN, req.headers.get('CF-Connecting-IP') || 'unknown', 'admin', 120)) return json({ error: 'rate_limited' }, 429);
+  if (req.method !== 'GET' && origin && origin !== (env.ALLOWED_ORIGIN || new URL(req.url).origin)) {
+    await log(env, req, null, 'origin_check', 'admin', undefined, 'denied', origin.slice(0, 150));
+    return json({ error: 'forbidden' }, 403);
+  }
+  if (await overLimit(env.RATE_LIMITER_ADMIN, reqIp(req), 'admin', 120)) return json({ error: 'rate_limited' }, 429);
   const me = await auth(req, env);
-  if (!me) return json({ error: 'unauthorized' }, 401);
+  if (!me) {
+    // Hanya token yang dikirim tetapi tidak valid yang dicatat (tanpa token = kunjungan biasa, bukan serangan).
+    if (req.headers.get('Authorization')) await log(env, req, null, 'access', 'admin', undefined, 'failure', 'token tidak valid');
+    return json({ error: 'unauthorized' }, 401);
+  }
+  if (!PERM[me.role]) {
+    await log(env, req, me.id, 'access', 'admin', undefined, 'denied', `peran tidak dikenal: ${me.role}`);
+    return json({ error: 'forbidden', detail: 'Peran akun ini tidak dikenal.' }, 403);
+  }
   const [table, id, action] = parts;
+  if (table === 'security') return security(req, env, me, id);
+  if (table === 'pdf') return pdfExport(req, env, me, id, action);
+  const grp = GROUP[table];
+  if (grp && !can(me.role, grp, LEVEL[req.method] || 'w')) {
+    await log(env, req, me.id, VERB[req.method] || req.method.toLowerCase(), table, id && UUID.test(id) ? id : undefined, 'denied', `role=${me.role}`);
+    return json({ error: 'forbidden', detail: 'Peran Anda tidak punya akses untuk aksi ini.' }, 403);
+  }
   if (table === 'settings') {
     if (req.method === 'GET') return json(await sb(env, 'site_settings?select=key,value').then(r => r.json()));
     const keys = SETTINGS[id || ''];
@@ -157,9 +310,10 @@ async function admin(req: Request, env: Env, parts: string[]): Promise<Response>
       v.whatsapp = v.whatsapp.replace(/\D/g, '').slice(0, 16);
       if (v.email && !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(v.email)) return json({ error: 'email_invalid' }, 400);
     }
-    await sb(env, 'site_settings?on_conflict=key', { method: 'POST', headers: { Prefer: 'resolution=merge-duplicates,return=minimal' },
+    const sr = await sb(env, 'site_settings?on_conflict=key', { method: 'POST', headers: { Prefer: 'resolution=merge-duplicates,return=minimal' },
       body: JSON.stringify({ key: id, value: v, updated_at: new Date().toISOString() }) });
-    await log(env, me.id, 'update', 'settings', id);
+    if (!sr.ok) { await log(env, req, me.id, 'update', 'settings', id, 'failure', `db ${sr.status}`); return json({ error: 'db' }, 400); }
+    await log(env, req, me.id, 'update', 'settings', id);
     return json({ ok: true });
   }
   if (id && !UUID.test(id)) return json({ error: 'bad_id' }, 400);
@@ -182,14 +336,14 @@ async function admin(req: Request, env: Env, parts: string[]): Promise<Response>
       const alt = clean(new URL(req.url).searchParams.get('alt'), 200);
       const r = await sb(env, 'media', { method: 'POST', headers: { Prefer: 'return=representation' },
         body: JSON.stringify({ object_key: key, alt_text: alt || null, mime, size: buf.byteLength }) });
-      await log(env, me.id, 'upload', 'media', key);
+      await log(env, req, me.id, 'upload', 'media', key);
       return json(await r.json(), 201);
     }
     if (req.method === 'DELETE' && id) {
       const row = (await sb(env, `media?id=eq.${id}&select=object_key`).then(r => r.json())) as { object_key: string }[];
       if (row[0]) await env.MEDIA.delete(row[0].object_key);
       await sb(env, `media?id=eq.${id}`, { method: 'DELETE' });
-      await log(env, me.id, 'delete', 'media', id);
+      await log(env, req, me.id, 'delete', 'media', id);
       return json({ ok: true });
     }
     return json({ error: 'method' }, 405);
@@ -204,7 +358,7 @@ async function admin(req: Request, env: Env, parts: string[]): Promise<Response>
       body: JSON.stringify({ title: `Proyek ${l.name}`, contact_id: c[0]?.id ?? null, stage: 'baru', source: 'website', notes: l.brief }) });
     if (!d.ok) return json({ error: 'db' }, 400);
     await sb(env, `leads?id=eq.${id}`, { method: 'PATCH', body: JSON.stringify({ status: 'contacted' }) });
-    await log(env, me.id, 'convert', 'leads', id);
+    await log(env, req, me.id, 'convert', 'leads', id);
     return json({ ok: true }, 201);
   }
   const cfg = TABLES[table];
@@ -216,11 +370,23 @@ async function admin(req: Request, env: Env, parts: string[]): Promise<Response>
       technology_ids: [...project_technologies].sort((a: any, b: any) => (a.sort_order ?? 0) - (b.sort_order ?? 0)).map((x: any) => x.technology_id),
       gallery: [...project_media].sort((a: any, b: any) => (a.sort_order ?? 0) - (b.sort_order ?? 0)).map((g: any) => ({ object_key: g.object_key, alt_text: g.alt_text || '' })) })));
   }
+  if (req.method === 'GET' && DOC_EMBED[table]) {
+    const r = await sb(env, `${table}?select=*,${DOC_EMBED[table][0]}(position,description,qty,unit_price)&order=${cfg.order}&limit=200`);
+    if (!r.ok) return json({ error: 'db', detail: 'Jalankan ulang bagian Fase 3 di supabase/schema.sql' }, 500);
+    return json(((await r.json()) as any[]).map(d => shapeDoc(table, d)));
+  }
+  if (req.method === 'GET' && table === 'tasks') {
+    const r = await sb(env, `tasks?select=*,ms:projects_delivery(title)&order=${cfg.order}&limit=200`);
+    if (!r.ok) return json({ error: 'db', detail: 'Jalankan ulang bagian Fase 3 di supabase/schema.sql' }, 500);
+    // milestone (teks) tetap ada untuk tampilan: nama tonggak, atau teks lama bila belum dimigrasi
+    return json(((await r.json()) as any[]).map(({ ms, ...t }) => ({ ...t, milestone: ms?.title ?? t.milestone ?? null })));
+  }
   if (req.method === 'GET') return json(await sb(env, `${table}?select=*&order=${cfg.order}&limit=200`).then(r => r.json()));
   if (req.method === 'DELETE') {
     if (cfg.del === false || !id) return json({ error: 'method' }, 405);
-    await sb(env, `${table}?id=eq.${id}`, { method: 'DELETE' });
-    await log(env, me.id, 'delete', table, id);
+    const dr = await sb(env, `${table}?id=eq.${id}`, { method: 'DELETE' });
+    if (!dr.ok) { await log(env, req, me.id, 'delete', table, id, 'failure', `db ${dr.status}`); return json({ error: 'db' }, 400); }
+    await log(env, req, me.id, 'delete', table, id);
     return json({ ok: true });
   }
   if (req.method === 'POST' || req.method === 'PATCH') {
@@ -240,14 +406,25 @@ async function admin(req: Request, env: Env, parts: string[]): Promise<Response>
     if (typeof data.slug === 'string' && !/^[a-z0-9-]{1,100}$/.test(data.slug)) return json({ error: 'slug', detail: 'Slug: huruf kecil, angka, tanda minus' }, 400);
     const r = await sb(env, req.method === 'POST' ? table : `${table}?id=eq.${id}`, {
       method: req.method, headers: { Prefer: 'return=representation' }, body: JSON.stringify(data) });
-    if (!r.ok) return json({ error: 'db', detail: (await r.text()).slice(0, 200) }, 400);
+    if (!r.ok) {
+      const why = (await r.text()).slice(0, 200);
+      await log(env, req, me.id, req.method === 'POST' ? 'create' : 'update', table, id, 'failure', `db ${r.status}`);
+      return json({ error: 'db', detail: why }, 400);
+    }
     const saved = (await r.json()) as any[];
     if (table === 'projects') {
       const pid = req.method === 'POST' ? saved[0]?.id : id;
       const bad = pid && UUID.test(pid) ? await syncProject(env, pid, body) : null;
       if (bad) return json({ error: 'db', detail: `Proyek tersimpan, tetapi ${bad} gagal disimpan. Coba simpan ulang.` }, 400);
     }
-    await log(env, me.id, req.method === 'POST' ? 'create' : 'update', table, id);
+    if (DOC_EMBED[table] && Array.isArray(body.items)) {
+      const did = req.method === 'POST' ? saved[0]?.id : id;
+      if (!(did && UUID.test(did) && await syncItems(env, DOC_EMBED[table][1] as 'proposal' | 'invoice', did, body.items))) {
+        await log(env, req, me.id, req.method === 'POST' ? 'create' : 'update', table, id, 'failure', 'rincian gagal disimpan');
+        return json({ error: 'db', detail: 'Dokumen tersimpan, tetapi rincian gagal disimpan. Simpan ulang.' }, 400);
+      }
+    }
+    await log(env, req, me.id, req.method === 'POST' ? 'create' : 'update', table, id);
     return json(saved, req.method === 'POST' ? 201 : 200);
   }
   return json({ error: 'method' }, 405);
@@ -257,10 +434,10 @@ async function publicContent(req: Request, env: Env, ctx: ExecutionContext): Pro
   const cache = caches.default, key = new Request(new URL(req.url).origin + '/api/public/content');
   const hit = await cache.match(key);
   if (hit) return hit;
-  const q = (t: string, extra = '') => sb(env, `${t}?is_published=eq.true${extra}`).then(r => r.json());
+  const q = (t: string, extra = '', flt = 'is_published=eq.true') => sb(env, `${t}?${flt}${extra}`).then(r => r.json());
   const [services, projects, testimonials, clients, articles, st] = await Promise.all([
     q('services', '&select=title,slug,summary,icon&order=sort_order.asc'),
-    q('projects', `&select=${PROJECT_LIST_COLS},${PROJECT_EMBED}&order=created_at.desc&limit=12`)
+    q('projects', `&select=${PROJECT_LIST_COLS},${PROJECT_EMBED}&order=published_at.desc.nullslast,created_at.desc&limit=12`, 'status=eq.published')
       .then(p => (Array.isArray(p) ? p.map(shapeProject) : [])),
     q('testimonials', '&select=client_name,organization,quote&order=created_at.desc&limit=6'),
     q('clients', '&select=name,logo_key,website_url'),
@@ -318,6 +495,7 @@ export default {
         { headers: { 'Content-Type': 'application/javascript; charset=utf-8', 'Cache-Control': 'no-store' } });
       if (pathname === '/api/public/content' && req.method === 'GET') return publicContent(req, env, ctx);
       if (pathname === '/api/leads') return req.method === 'POST' ? handleLead(req, env, ctx) : json({ error: 'method' }, 405);
+      if (pathname === '/api/auth/login') return req.method === 'POST' ? adminLogin(req, env) : json({ error: 'method' }, 405);
       if (pathname.startsWith('/api/admin/')) return admin(req, env, pathname.slice(11).split('/').filter(Boolean));
       if (pathname.startsWith('/media/') && req.method === 'GET') return media(env, pathname.slice(7));
       if (pathname.startsWith('/api/')) return json({ error: 'not_found' }, 404);

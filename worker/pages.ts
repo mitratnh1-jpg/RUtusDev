@@ -65,11 +65,11 @@ export async function pages(req: Request, env: Env, path: string): Promise<Respo
     return new Response(`User-agent: *\nAllow: /\nDisallow: /admin/\nDisallow: /api/\n\nSitemap: ${origin}/sitemap.xml\n`, { headers: { 'Content-Type': 'text/plain' } });
 
   if (path === '/sitemap.xml') {
-    const [a, p, sv] = await Promise.all([get(env, 'articles?status=eq.published&select=slug,created_at'), get(env, 'projects?is_published=eq.true&select=slug,created_at'), get(env, 'services?is_published=eq.true&select=slug,created_at')]);
+    const [a, p, sv] = await Promise.all([get(env, 'articles?status=eq.published&select=slug,created_at'), get(env, 'projects?status=eq.published&select=slug,created_at,published_at'), get(env, 'services?is_published=eq.true&select=slug,created_at')]);
     const u = (loc: string, d?: string) => `<url><loc>${esc(origin + loc)}</loc>${d ? `<lastmod>${d.slice(0, 10)}</lastmod>` : ''}</url>`;
     const xml = `<?xml version="1.0" encoding="UTF-8"?><urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">${u('/')}${u('/articles')}` +
       a.filter((x: any) => SLUG.test(x.slug || '')).map((x: any) => u('/articles/' + x.slug, x.created_at)).join('') +
-      p.filter((x: any) => SLUG.test(x.slug || '')).map((x: any) => u('/work/' + x.slug, x.created_at)).join('') +
+      p.filter((x: any) => SLUG.test(x.slug || '')).map((x: any) => u('/work/' + x.slug, x.published_at || x.created_at)).join('') +
       sv.filter((x: any) => SLUG.test(x.slug || '')).map((x: any) => u('/services/' + x.slug, x.created_at)).join('') + '</urlset>';
     return new Response(xml, { headers: { 'Content-Type': 'application/xml', 'Cache-Control': 'public, max-age=300' } });
   }
@@ -102,13 +102,13 @@ export async function pages(req: Request, env: Env, path: string): Promise<Respo
         body: `<p><a href="/articles">← Artikel</a></p><h1>${esc(a.title)}</h1><p class="meta">${esc((a.created_at || '').slice(0, 10))}</p>${
           a.cover_key ? `<img class="cover" src="/media/${esc(a.cover_key)}" alt="${esc(a.title)}">` : ''}<div class="prose">${paras(a.body)}</div>` });
     }
-    const [raw] = await get(env, `projects?slug=eq.${slug}&is_published=eq.true&select=${PROJECT_COLS},${PROJECT_EMBED}&limit=1`);
+    const [raw] = await get(env, `projects?slug=eq.${slug}&status=eq.published&select=${PROJECT_COLS},${PROJECT_EMBED}&limit=1`);
     if (!raw) return notFound(origin);
     const p = shapeProject(raw), tech = p.technologies, demo = safeUrl(p.demo_url);
     const gal = p.gallery.filter(g => MEDIA_KEY.test(g.object_key));
     return layout(origin, { title: `${p.title} — Studi kasus | RUtusdev`, desc: p.summary || p.title, path, og: p.cover_key,
       ld: { '@context': 'https://schema.org', '@type': 'CreativeWork', name: p.title, description: p.summary, creator: { '@type': 'Organization', name: 'RUtusdev' },
-        datePublished: p.created_at, ...(demo ? { url: demo } : {}), ...(p.cover_key ? { image: `${origin}/media/${p.cover_key}` } : {}) },
+        datePublished: p.published_at || p.created_at, ...(demo ? { url: demo } : {}), ...(p.cover_key ? { image: `${origin}/media/${p.cover_key}` } : {}) },
       body: `<p><a href="/#work">← Karya pilihan</a></p><h1>${esc(p.title)}</h1><p class="lead">${esc(p.summary)}</p>${
         p.cover_key ? `<img class="cover" src="/media/${esc(p.cover_key)}" alt="${esc(p.title)}">` : ''}<p class="chips">${
         [p.category, ...tech].filter(Boolean).map(t => `<span>${esc(t)}</span>`).join('')}</p><div class="prose">${paras(p.body)}</div>${

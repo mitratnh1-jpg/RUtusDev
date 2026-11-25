@@ -1,6 +1,6 @@
 // Bentuk data portofolio ternormalisasi (projects + project_categories + technologies + project_media).
 // Kolom eksplisit (bukan select=*) agar kolom warisan `category`/`technologies` tidak bentrok dengan hasil embed.
-export const PROJECT_COLS = 'id,title,slug,summary,body,cover_key,demo_url,featured,created_at';
+export const PROJECT_COLS = 'id,title,slug,summary,body,cover_key,demo_url,featured,created_at,published_at';
 // Daftar di landing page: tanpa body/id/created_at.
 export const PROJECT_LIST_COLS = 'title,slug,summary,cover_key,demo_url,featured';
 export const PROJECT_EMBED = 'cat:project_categories(name,slug),project_technologies(sort_order,tech:technologies(name,slug)),gallery:project_media(object_key,alt_text,sort_order)';

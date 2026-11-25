@@ -41,7 +41,11 @@ Cloudflare Web Analytics (tanpa cookie): Cloudflare → Analytics & Logs → Web
 `CF_BEACON_TOKEN` di `wrangler.jsonc` **dan** `VITE_CF_BEACON_TOKEN` di `web/.env`. Beacon dipasang di landing page dan halaman artikel/proyek.
 
 ## Log
-Aksi admin tercatat di tabel `activity_logs` (aktor, aksi, entitas, waktu). Log Worker: `npx wrangler tail`.
+Aksi admin tercatat di tabel `activity_logs` (aktor, aksi, entitas, hasil `success`/`failure`/`denied`, IP, user agent, detail, waktu). Login admin lewat `/api/auth/login` sehingga login gagal ikut tercatat. Lihat di Admin → Keamanan & Log (peran admin). Log Worker: `npx wrangler tail`.
+
+Peran admin (`admin_profiles.role`): `admin` = penuh, `editor` = konten situs tanpa hapus, `viewer` = hanya baca. Ubah lewat SQL Editor: `update public.admin_profiles set role = 'editor' where user_id = '<UUID>';`
+
+Proyek punya `status` (draft/published/archived) dan `published_at` (terbit pertama). Jalankan ulang bagian Fase 3 di `supabase/schema.sql` SEBELUM deploy.
 
 ## Checklist sebelum rilis
 - [ ] `npm run check:release` lolos (tidak ada placeholder `GANTI…`; dijalankan otomatis oleh `npm run deploy`)
@@ -56,3 +60,5 @@ Aksi admin tercatat di tabel `activity_logs` (aktor, aksi, entitas, waktu). Log 
 - [ ] Tidak ada service-role key di `public/` atau repository
 - [ ] Sitemap dikirim ke Google Search Console; cek `/robots.txt`
 - [ ] Uji di HP, cek kuota free tier Workers/Supabase/R2, jadwalkan backup pertama
+
+Rincian penawaran/faktur kini di tabel `proposal_items`/`invoice_items`; tonggak pengerjaan di `projects_delivery` (tugas menunjuk lewat `tasks.milestone_id`). PDF dibuat di server: Admin → Penawaran/Faktur → Unduh PDF (`GET /api/admin/pdf/<proposal|invoice>/<id>`, memakai pdf-lib; jalankan `bun install`/`npm i` sebelum deploy).
