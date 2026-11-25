@@ -404,6 +404,19 @@ async function uniqueSlug(env: Env, table: string, title: string): Promise<strin
   const taken = r && r.ok ? ((await r.json().catch(() => [])) as unknown[]).length > 0 : false;
   return taken ? `${base.slice(0, 90)}-${Math.random().toString(36).slice(2, 6)}` : base;
 }
+// Menyembuhkan data lama: baris terbit tanpa slug diberi slug otomatis (berjalan di latar belakang saat landing memuat konten).
+async function backfillSlugs(env: Env, tables: string[]): Promise<void> {
+  for (const t of tables) {
+    const r = await sb(env, `${t}?or=(slug.is.null,slug.eq.)&select=id,title&limit=20`).catch(() => null);
+    const rows = r && r.ok ? ((await r.json().catch(() => [])) as { id?: string; title?: string }[]) : [];
+    for (const x of Array.isArray(rows) ? rows : []) {
+      if (!x.id || !UUID.test(x.id) || !x.title) continue;
+      const slug = await uniqueSlug(env, t, x.title);
+      await sb(env, `${t}?id=eq.${x.id}`, { method: 'PATCH', headers: { Prefer: 'return=minimal' }, body: JSON.stringify({ slug }) }).catch(() => null);
+    }
+  }
+  await caches.default.delete(new Request(env.ALLOWED_ORIGIN + '/api/public/content')).catch(() => false);
+}
 async function admin(req: Request, env: Env, parts: string[], ctx: ExecutionContext): Promise<Response> {
   const res = await adminHandle(req, env, parts);
   if (req.method !== 'GET' && res.ok && PUBLIC_TABLES.has(parts[0] || '')) ctx.waitUntil(purgePublic(req, env));
@@ -587,6 +600,16 @@ async function diag(env: Env): Promise<Response> {
     anon_key_format: fmt(env.SUPABASE_ANON_KEY || ''),
     admin_profiles: await probe('admin_profiles?select=user_id&limit=1'),
     site_settings: await probe('site_settings?select=key&limit=1'),
+    // Mengapa portofolio tidak tampil di landing: hitungan per status, slug kosong, dan hasil query publik persis seperti yang dipakai landing.
+    portofolio: await (async () => {
+      try {
+        const all = (await (await sb(env, 'projects?select=status,slug&limit=500')).json()) as { status?: string; slug?: string | null }[];
+        if (!Array.isArray(all)) return { error: 'query projects gagal' };
+        const per: Record<string, number> = {}; all.forEach(x => { per[x.status || '?'] = (per[x.status || '?'] || 0) + 1; });
+        return { per_status: per, terbit_tanpa_slug: all.filter(x => x.status === 'published' && !x.slug).length,
+          query_landing: await probe(`projects?status=eq.published&select=${PROJECT_LIST_COLS},${PROJECT_EMBED}&limit=1`) };
+      } catch { return { error: 'gagal membaca projects' }; }
+    })(),
   });
 }
 
@@ -612,6 +635,8 @@ async function publicContent(req: Request, env: Env, ctx: ExecutionContext): Pro
     sb(env, 'articles?status=eq.published&select=title,slug,excerpt,cover_key,created_at&order=created_at.desc&limit=6').then(r => rows(r, 'articles')),
     sb(env, 'site_settings?select=key,value').then(r => rows(r, 'site_settings')) as Promise<{ key: string; value: unknown }[]>,
   ]);
+  const lacking = ([['services', services], ['projects', projects], ['articles', articles]] as [string, any[]][]).filter(([, r]) => r.some(x => !x.slug)).map(([t]) => t);
+  if (lacking.length) ctx.waitUntil(backfillSlugs(env, lacking));
   const settings = Object.fromEntries((Array.isArray(st) ? st : []).map(x => [x.key, x.value]));
   if (degraded) return json({ services, projects, testimonials, clients, articles, settings }, 200); // no-store: coba lagi di permintaan berikutnya
   const payload = JSON.stringify({ services, projects, testimonials, clients, articles, settings });
