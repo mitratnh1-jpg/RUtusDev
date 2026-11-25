@@ -685,6 +685,14 @@ const handler = {
 // Semua respons (termasuk aset statis) diberi header keamanan.
 export default {
   async fetch(req: Request, env: Env, ctx: ExecutionContext): Promise<Response> {
-    return secure(await handler.fetch(req, env, ctx), env.CSP_REPORT_ONLY !== '0');
+    const url = new URL(req.url), host = url.hostname.toLowerCase();
+    // HTTP -> HTTPS: HSTS tidak melindungi kunjungan HTTP pertama, jadi alihkan permanen (308 menjaga metode & body).
+    // Localhost dikecualikan agar `wrangler dev` tetap berjalan.
+    const local = host === 'localhost' || host === '127.0.0.1' || host === '[::1]' || host.endsWith('.localhost');
+    if (!local && (url.protocol === 'http:' || (req.headers.get('cf-visitor') || '').includes('"scheme":"http"'))) {
+      url.protocol = 'https:';
+      return secure(new Response(null, { status: 308, headers: { Location: url.toString(), 'Cache-Control': 'no-store' } }), false, url.pathname);
+    }
+    return secure(await handler.fetch(req, env, ctx), env.CSP_REPORT_ONLY !== '0', url.pathname);
   },
 };

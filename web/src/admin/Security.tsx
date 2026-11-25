@@ -6,8 +6,8 @@ import { Pager, useLoad, Status } from './ui';
 import type { Can, Me, Row } from './types';
 
 const badge = (r: string) => (
-  <span style={{ padding: '1px 8px', borderRadius: 99, fontSize: 12, background: r === 'success' ? '#14351f' : r === 'denied' ? '#4a3a12' : '#4a1a22',
-    color: r === 'success' ? '#7ee787' : r === 'denied' ? '#ffd479' : '#ff8a8a' }}>{L(r)}</span>);
+  <span style={{ padding: '1px 8px', borderRadius: 99, fontSize: 12, background: r === 'success' ? '#dcfce7' : r === 'denied' ? '#fef3c7' : '#ffe4e6',
+    color: r === 'success' ? '#047857' : r === 'denied' ? '#b45309' : '#be123c' }}>{L(r)}</span>);
 
 // Pendaftaran / pencabutan MFA (TOTP). Setelah kode benar, Supabase memberi token baru level aal2 yang menggantikan token lama.
 function Mfa({ me, onChanged }: { me: Me; onChanged: () => void }) {
@@ -27,7 +27,7 @@ function Mfa({ me, onChanged }: { me: Me; onChanged: () => void }) {
       <h3>Verifikasi 2 langkah (MFA)</h3>
       <Status err={st.err} loading={!d} />
       {d && verified && !enr && <>
-        <p><b style={{ color: '#7ee787' }}>Aktif</b> — login meminta kode 6 digit dari aplikasi autentikator.</p>
+        <p><b style={{ color: '#047857' }}>Aktif</b> — login meminta kode 6 digit dari aplikasi autentikator.</p>
         {!d.required && <button className="d" disabled={busy} onClick={() => off(verified.id)}>Nonaktifkan MFA</button>}
         {d.required && <p className="dim">MFA diwajibkan oleh konfigurasi server (REQUIRE_MFA).</p>}
       </>}

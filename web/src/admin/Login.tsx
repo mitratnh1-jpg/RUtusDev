@@ -13,7 +13,7 @@ export default function Login({ onDone }: { onDone: () => void }) {
   useEffect(() => {
     if (!siteKey || mfa) return;
     const t = setInterval(() => {
-      if (window.turnstile && box.current && !cap.current) { cap.current = window.turnstile.render(box.current, { sitekey: siteKey, theme: 'dark' }); clearInterval(t); }
+      if (window.turnstile && box.current && !cap.current) { cap.current = window.turnstile.render(box.current, { sitekey: siteKey, theme: 'light' }); clearInterval(t); }
     }, 200);
     return () => { clearInterval(t); cap.current = undefined; };
   }, [mfa]);
@@ -49,23 +49,23 @@ export default function Login({ onDone }: { onDone: () => void }) {
   }
 
   if (mfa) return (
-    <form id="login" onSubmit={submitCode}>
-      <h1>Verifikasi 2 langkah</h1>
+    <div className="lw"><form id="login" onSubmit={submitCode}>
+      <span className="logo big">R</span><h1>Verifikasi 2 langkah</h1>
       <p className="dim">Masukkan 6 digit kode dari aplikasi autentikator Anda.</p>
       <input value={code} onChange={e => setCode(e.target.value.replace(/\D/g, '').slice(0, 6))} inputMode="numeric" autoComplete="one-time-code" placeholder="123456" autoFocus required />
       <button disabled={busy || code.length !== 6}>Verifikasi</button>
       <button type="button" className="g" onClick={() => { setMfa(null); setErr(''); }}>Kembali</button>
       <p className="err">{err}</p>
-    </form>
+    </form></div>
   );
   return (
-    <form id="login" onSubmit={submitCred}>
-      <h1>Admin RUtusdev</h1>
+    <div className="lw"><form id="login" onSubmit={submitCred}>
+      <span className="logo big">R</span><h1>Admin RUtusdev</h1><p className="dim">Masuk untuk mengelola prospek, proyek, dan konten website.</p>
       <input type="email" value={email} onChange={e => setEmail(e.target.value)} placeholder="Email" required autoComplete="username" />
       <input type="password" value={pw} onChange={e => setPw(e.target.value)} placeholder="Kata sandi" required autoComplete="current-password" />
       <div ref={box} />
       <button disabled={busy}>Masuk</button>
       <p className="err">{err}</p>
-    </form>
+    </form></div>
   );
 }

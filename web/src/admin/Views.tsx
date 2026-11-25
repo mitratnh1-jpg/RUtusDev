@@ -16,7 +16,7 @@ export function Pipeline({ can }: { can: Can }) {
   return (
     <>
       <h1>Pipeline</h1>
-      <p style={{ color: 'var(--dim)' }}>Nilai pipeline aktif: <b style={{ color: '#fff' }}>{rp(sum(d => !['menang', 'kalah'].includes(d.stage)))}</b> · Menang: <b style={{ color: '#7ee787' }}>{rp(sum(d => d.stage === 'menang'))}</b> · Piutang invoice: <b style={{ color: '#ffd479' }}>{rp(piutang)}</b></p>
+      <p style={{ color: 'var(--dim)' }}>Nilai pipeline aktif: <b style={{ color: '#0f172a' }}>{rp(sum(d => !['menang', 'kalah'].includes(d.stage)))}</b> · Menang: <b style={{ color: '#047857' }}>{rp(sum(d => d.stage === 'menang'))}</b> · Piutang invoice: <b style={{ color: '#b45309' }}>{rp(piutang)}</b></p>
       <p style={{ color: 'var(--dim)' }}>Tambah peluang di tab <b>Peluang</b>, atau ubah prospek menjadi peluang di tab <b>Prospek</b>. Pindahkan tahap lewat menu di tiap kartu.</p>
       <p className="err">{e2}</p>
       <div className="kan">{STAGES.map(st => { const c = ds.filter(d => d.stage === st); return (
