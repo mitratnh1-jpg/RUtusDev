@@ -136,8 +136,12 @@ function Services({ items }: { items: Service[] }) {
         <p className="lead dim">Satu studio untuk strategi, desain, pengembangan, dan perawatan produk digital Anda, dengan lingkungan yang aman dan terpisah.</p>
         </Reveal>
         <div className="panel">
-          {items.length ? items.map(s => (
-            <article className="cell" key={s.title}><h3>{s.title}</h3><p>{s.summary}</p>
+          {items.length ? items.map((s, i) => (
+            // Dua layanan pertama tetap memakai tumpukan kartu geser (Deck) + kode berputar; sisanya kartu biasa.
+            // Garis pemisah disesuaikan agar rapi di grid 2 kolom walau layanan lebih dari dua.
+            <article className="cell" key={s.title} style={i >= 2 ? { borderTop: '1px solid var(--line)', ...(i % 2 === 0 ? { borderLeft: 0 } : {}) } : undefined}>
+              {i < 2 && <Deck variant={i === 0 ? 'web' : 'app'} />}
+              <h3>{s.title}</h3><p>{s.summary}</p>
               <p className="links">{s.slug && SLUG.test(s.slug) && <a href={`/services/${s.slug}`}>Lihat detail <i>→</i></a>}<a href="#contact">Minta penawaran <i>→</i></a></p></article>
           )) : (<>
             <article className="cell">
