@@ -59,7 +59,33 @@ function Nav() {
   );
 }
 
-const HERO_STACK = ['Cloudflare', 'Supabase', 'React', 'TypeScript', 'PostgreSQL'];
+// Tiap slot berisi satu kategori teknologi; kata di dalamnya bergantian setiap 3 detik.
+const HERO_STACK = [
+  ['Cloudflare', 'Vercel', 'Netlify', 'AWS'],
+  ['Supabase', 'Firebase', 'Appwrite', 'PocketBase'],
+  ['React', 'Vue', 'Svelte', 'Next.js'],
+  ['TypeScript', 'JavaScript', 'Python', 'Go'],
+  ['PostgreSQL', 'MySQL', 'MongoDB', 'SQLite'],
+];
+const SLOT_MS = 3000;
+// Kata lama meluncur ke atas lalu hilang, kata baru naik dari bawah. Tiap slot mulai bergeser sedikit agar tidak serempak.
+function StackSlot({ words, offset }: { words: string[]; offset: number }) {
+  const [s, setS] = useState({ cur: 0, prev: -1, n: 0 });
+  useEffect(() => {
+    const tick = () => setS(v => ({ cur: (v.cur + 1) % words.length, prev: v.cur, n: v.n + 1 }));
+    let iv: number | undefined;
+    const t = window.setTimeout(() => { tick(); iv = window.setInterval(tick, SLOT_MS); }, SLOT_MS + offset);
+    return () => { clearTimeout(t); clearInterval(iv); };
+  }, [words.length, offset]);
+  const anim = s.n > 0 && !reducedMotion();
+  return (
+    <span className="slot">
+      {words.map(w => <em key={w} className="slot-size" aria-hidden="true">{w}</em>)}
+      {anim && <em key={'o' + s.n} className="slot-w out" aria-hidden="true">{words[s.prev]}</em>}
+      <em key={'i' + s.n} className={'slot-w' + (anim ? ' in' : '')}>{words[s.cur]}</em>
+    </span>
+  );
+}
 function Hero({ h, clients = [] }: { h: { eyebrow?: string; headline?: string; headline_dim?: string; subheadline?: string; cta_primary?: string; cta_secondary?: string }; clients?: Client[] }) {
   const logos = clients.filter(c => c.logo_key && COVER.test(c.logo_key)).slice(0, 5);
   const root = useRef<HTMLElement>(null);
@@ -92,7 +118,7 @@ function Hero({ h, clients = [] }: { h: { eyebrow?: string; headline?: string; h
       </div>
       {/* Jejak kepercayaan di dasar hero (tablet & desktop): logo klien bila ada, selain itu teknologi yang dipakai */}
       <div className="wrap hero-logos" aria-label={logos.length ? 'Klien' : 'Teknologi'}>
-        {logos.length ? logos.map(c => <img key={c.name} src={`/media/${c.logo_key}`} alt={c.name} loading="lazy" />) : HERO_STACK.map(t => <span key={t}>{t}</span>)}
+        {logos.length ? logos.map(c => <img key={c.name} src={`/media/${c.logo_key}`} alt={c.name} loading="lazy" />) : HERO_STACK.map((w, i) => <StackSlot key={w[0]} words={w} offset={i * 450} />)}
       </div>
       <i className="corners bottom" aria-hidden="true" />
     </section>
