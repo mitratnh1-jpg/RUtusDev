@@ -1,7 +1,7 @@
 // Klien API admin. Token disimpan di sessionStorage (kunci 't', dibaca juga oleh halaman cetak) dan hanya hidup selama tab terbuka.
 declare global {
   interface Window {
-    CFG: { SUPABASE_URL: string; ANON_KEY: string; TURNSTILE_SITE_KEY: string };
+    CFG: { TURNSTILE_SITE_KEY: string };
     turnstile?: { render(el: HTMLElement, o: { sitekey: string; theme?: string }): string; getResponse(id?: string): string; reset(id?: string): void };
   }
 }

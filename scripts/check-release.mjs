@@ -15,9 +15,13 @@ catch (e) { err('wrangler.jsonc tidak bisa dibaca: ' + e.message); }
 const v = w.vars || {};
 const placeholder = s => !s || /GANTI/i.test(String(s));
 
-if (placeholder(v.SUPABASE_URL) || !/^https:\/\/[a-z0-9-]+\.supabase\.co$/.test(v.SUPABASE_URL || '')) err('wrangler.jsonc: SUPABASE_URL belum diisi (masih placeholder/format salah).');
-if (placeholder(v.SUPABASE_ANON_KEY)) err('wrangler.jsonc: SUPABASE_ANON_KEY belum diisi.');
-if (placeholder(v.TURNSTILE_SITE_KEY)) err('wrangler.jsonc: TURNSTILE_SITE_KEY belum diisi (dipakai halaman login admin).');
+// SUPABASE_URL / SUPABASE_ANON_KEY / TURNSTILE_SITE_KEY boleh TIDAK ada di wrangler.jsonc (disimpan sebagai Secret/variabel dashboard,
+// lihat docs/ENV.md). Bila ada di sini, nilainya harus asli (bukan placeholder).
+if ('SUPABASE_URL' in v && (placeholder(v.SUPABASE_URL) || !/^https:\/\/[a-z0-9-]+\.supabase\.co$/.test(v.SUPABASE_URL))) err('wrangler.jsonc: SUPABASE_URL placeholder/format salah. Hapus barisnya dan simpan sebagai Secret (docs/ENV.md).');
+if ('SUPABASE_ANON_KEY' in v && placeholder(v.SUPABASE_ANON_KEY)) err('wrangler.jsonc: SUPABASE_ANON_KEY placeholder. Hapus barisnya dan simpan sebagai Secret (docs/ENV.md).');
+if ('TURNSTILE_SITE_KEY' in v && placeholder(v.TURNSTILE_SITE_KEY)) err('wrangler.jsonc: TURNSTILE_SITE_KEY placeholder. Hapus barisnya (isi di dashboard) atau isi nilai asli.');
+if (w.keep_vars !== true) err('wrangler.jsonc: set "keep_vars": true agar variabel dari dashboard tidak terhapus setiap deploy.');
+if (v.REQUIRE_MFA !== '1') warn('REQUIRE_MFA bukan "1": admin belum wajib MFA.');
 if (!/^https:\/\//.test(v.ALLOWED_ORIGIN || '') || /example|localhost/.test(v.ALLOWED_ORIGIN)) err('wrangler.jsonc: ALLOWED_ORIGIN harus domain final (https://...).');
 
 const rl = (w.ratelimits || []).map(x => x.name);
@@ -26,7 +30,7 @@ for (const n of ['RATE_LIMITER', 'RATE_LIMITER_ADMIN']) if (!rl.includes(n)) err
 // web/.env
 const env = Object.fromEntries(read('web/.env').split('\n').filter(l => /^\w+=/.test(l)).map(l => [l.slice(0, l.indexOf('=')), l.slice(l.indexOf('=') + 1).trim()]));
 if (placeholder(env.VITE_TURNSTILE_SITE_KEY)) err('web/.env: VITE_TURNSTILE_SITE_KEY belum diisi.');
-else if (env.VITE_TURNSTILE_SITE_KEY !== v.TURNSTILE_SITE_KEY) err('Site key Turnstile di web/.env berbeda dengan wrangler.jsonc (TURNSTILE_SITE_KEY).');
+else if ('TURNSTILE_SITE_KEY' in v && env.VITE_TURNSTILE_SITE_KEY !== v.TURNSTILE_SITE_KEY) err('Site key Turnstile di web/.env berbeda dengan wrangler.jsonc (TURNSTILE_SITE_KEY).');
 if (/example|localhost/.test(env.VITE_SITE_URL || '') || !env.VITE_SITE_URL) err('web/.env: VITE_SITE_URL belum diisi.');
 
 // Sisa admin lama di public/ akan menimpa admin React saat build
@@ -48,10 +52,9 @@ const BAD = [/6280000000000/, /Nama Klien/, /12\+\s*(?:<|Proyek|proyek)/, /Cepat
 (function walk(d) { for (const f of readdirSync(join(root, d))) { const t = read(join(d, f)); for (const re of BAD) if (re.test(t)) err(`${join(d, f)}: placeholder (${re.source}).`); } })('worker');
 
 // Peringatan (tidak menggagalkan)
-if (!v.NOTIFY_TO) warn('NOTIFY_TO kosong: notifikasi lead via email nonaktif (set juga secret RESEND_API_KEY), atau pakai secret NOTIFY_WEBHOOK_URL.');
-if (!v.CF_BEACON_TOKEN || !env.VITE_CF_BEACON_TOKEN) warn('Token Web Analytics belum lengkap: isi CF_BEACON_TOKEN (wrangler.jsonc) dan VITE_CF_BEACON_TOKEN (web/.env).');
-else if (v.CF_BEACON_TOKEN !== env.VITE_CF_BEACON_TOKEN) warn('CF_BEACON_TOKEN dan VITE_CF_BEACON_TOKEN berbeda.');
-warn('Secret tidak bisa dicek dari sini. Pastikan sudah ada: SUPABASE_SERVICE_ROLE_KEY, TURNSTILE_SECRET (npx wrangler secret list).');
+if (v.CF_BEACON_TOKEN && !env.VITE_CF_BEACON_TOKEN) warn('Token Web Analytics belum lengkap: isi CF_BEACON_TOKEN (wrangler.jsonc) dan VITE_CF_BEACON_TOKEN (web/.env).');
+else if (v.CF_BEACON_TOKEN && v.CF_BEACON_TOKEN !== env.VITE_CF_BEACON_TOKEN) warn('CF_BEACON_TOKEN dan VITE_CF_BEACON_TOKEN berbeda.');
+warn('Secret tidak bisa dicek dari sini. Pastikan ada: SUPABASE_URL, SUPABASE_ANON_KEY, SUPABASE_SERVICE_ROLE_KEY, TURNSTILE_SECRET (npx wrangler secret list, atau dashboard → Variables and Secrets).');
 warn('Isi Admin → Pengaturan (WhatsApp, email, statistik) dan tambah testimoni asli bila sudah ada izin publikasi.');
 
 warns.forEach(m => console.warn('⚠️  ' + m));

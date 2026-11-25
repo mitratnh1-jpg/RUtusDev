@@ -2,3 +2,8 @@
 SUPABASE_SERVICE_ROLE_KEY=
 # Kunci tes Turnstile (selalu lolos) untuk lokal:
 TURNSTILE_SECRET=1x0000000000000000000000000000000AA
+
+# Daftar lengkap nilai yang dipakai Worker (lokal: salin ke .dev.vars; produksi: Secret di Cloudflare, lihat docs/ENV.md)
+# SUPABASE_URL=https://<ref>.supabase.co
+# SUPABASE_ANON_KEY=sb_publishable_...
+# NOTIFY_TO=anda@contoh.com

@@ -664,8 +664,9 @@ const handler = {
     const { pathname } = new URL(req.url);
     try {
       if (pathname === '/api/health') return json({ ok: true });
-      // Konfigurasi publik halaman admin: satu sumber (wrangler vars), tidak perlu mengedit config.js manual.
-      if (pathname === '/admin/config.js') return new Response(`window.CFG = ${JSON.stringify({ SUPABASE_URL: env.SUPABASE_URL, ANON_KEY: env.SUPABASE_ANON_KEY, TURNSTILE_SITE_KEY: env.TURNSTILE_SITE_KEY || '' })};\n`,
+      // Konfigurasi publik halaman admin. Sengaja HANYA site key Turnstile (memang publik): alamat Supabase dan anon key
+      // tidak dibuka ke publik karena browser admin tidak memakainya (semua lewat Worker).
+      if (pathname === '/admin/config.js') return new Response(`window.CFG = ${JSON.stringify({ TURNSTILE_SITE_KEY: env.TURNSTILE_SITE_KEY || '' })};\n`,
         { headers: { 'Content-Type': 'application/javascript; charset=utf-8', 'Cache-Control': 'no-store' } });
       if (pathname === '/api/public/content' && req.method === 'GET') return publicContent(req, env, ctx);
       if (pathname === '/api/diag' && req.method === 'GET' && env.DIAG === '1') return diag(env);

@@ -45,7 +45,7 @@ Pastikan `ALLOWED_ORIGIN` di wrangler.jsonc berisi domain final agar canonical &
   blok ``` dan tautan `[teks](https://…)`. Semua di-escape lebih dulu; HTML mentah tidak dijalankan.
 - Rate limit: leads 5/menit/IP dan admin 120/menit/IP (fallback Cache API; tidak aktif di *.workers.dev).
   Untuk perlindungan lebih kuat tambahkan binding `RATE_LIMITER` atau aturan WAF.
-- Backup/pemulihan & checklist rilis: `docs/OPERASIONAL.md`.
+- Backup/pemulihan & checklist rilis: `docs/OPERASIONAL.md`. Variabel env & secret (agar tidak hilang saat deploy): `docs/ENV.md`.
 
 ## Settings, Markdown, Rate limit
 - Admin → **Settings**: ubah teks Hero (eyebrow, headline, subheadline, tombol) dan kontak (WhatsApp, email).
@@ -53,7 +53,7 @@ Pastikan `ALLOWED_ORIGIN` di wrangler.jsonc berisi domain final agar canonical &
   blok kode ``` dan tautan `[teks](https://…)`. Semua di-escape lebih dulu; HTML mentah tidak dijalankan.
 - Rate limit: leads 5/menit/IP dan admin 120/menit/IP (fallback Cache API; tidak aktif di *.workers.dev).
   Untuk perlindungan lebih kuat tambahkan binding `RATE_LIMITER` atau aturan WAF.
-- Backup/pemulihan & checklist rilis: `docs/OPERASIONAL.md`.
+- Backup/pemulihan & checklist rilis: `docs/OPERASIONAL.md`. Variabel env & secret (agar tidak hilang saat deploy): `docs/ENV.md`.
 
 ## CRM ringan (Fase 2 – tahap awal)
 Di admin: **Pipeline** (kanban 7 tahap + total nilai), **Peluang**, **Organisasi**, **Kontak**, **Riwayat** (catatan/telepon/WhatsApp/email/rapat).

@@ -44,7 +44,7 @@ export function secure(r: Response, reportOnly: boolean, pathname = '/'): Respon
   h.set('X-DNS-Prefetch-Control', 'off');
   h.set('Origin-Agent-Cluster', '?1');
   // API & panel admin: tidak boleh dibaca situs lain dan tidak boleh disimpan di cache bersama/peramban.
-  if (isApi || isAdmin) h.set('Cross-Origin-Resource-Policy', 'same-origin');
+  if (isApi || isAdmin) { h.set('Cross-Origin-Resource-Policy', 'same-origin'); h.set('X-Robots-Tag', 'noindex, nofollow, noarchive'); }
   if (isApi && !h.has('Cache-Control')) h.set('Cache-Control', 'no-store');
   if (isAdmin && (h.get('Content-Type') || '').includes('text/html')) h.set('Cache-Control', 'no-store');
   return new Response(r.body, { status: r.status, statusText: r.statusText, headers: h });

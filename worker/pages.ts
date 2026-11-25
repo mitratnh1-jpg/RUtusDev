@@ -68,7 +68,7 @@ export async function pages(req: Request, env: Env, path: string): Promise<Respo
   if (req.method !== 'GET') return null;
 
   if (path === '/robots.txt')
-    return new Response(`User-agent: *\nAllow: /\nDisallow: /admin/\nDisallow: /api/\n\nSitemap: ${origin}/sitemap.xml\n`, { headers: { 'Content-Type': 'text/plain' } });
+    return new Response(`User-agent: *\nAllow: /\n\nSitemap: ${origin}/sitemap.xml\n`, { headers: { 'Content-Type': 'text/plain' } });
 
   if (path === '/sitemap.xml') {
     const [a, p, sv] = await Promise.all([get(env, 'articles?status=eq.published&select=slug,created_at'), get(env, 'projects?status=eq.published&select=slug,created_at,published_at'), get(env, 'services?is_published=eq.true&select=slug,created_at')]);
