@@ -15,7 +15,7 @@ export interface Env {
   IMAGES?: { input(s: ReadableStream): { transform(o: { width?: number; fit?: string }): { output(o: { format: string; quality?: number }): Promise<{ response(): Response }> } } };
   REQUIRE_MFA?: string; // "1" = admin wajib MFA (akun tanpa MFA hanya bisa membuka tab Keamanan untuk mengaktifkannya)
   DIAG?: string; // "1" = aktifkan /api/diag (diagnostik sementara, tanpa membocorkan kunci)
-  CSP_REPORT_ONLY?: string; // "1" = CSP hanya dilaporkan (tidak memblokir); "0" = diberlakukan
+  CSP_REPORT_ONLY?: string; // "1" = CSP hanya dilaporkan (tidak memblokir); selain itu/tidak diset = diberlakukan
   CF_API_TOKEN?: string; CF_ZONE_ID?: string; // opsional: purge cache konten publik di seluruh lokasi Cloudflare setelah admin menyimpan
 }
 type Cfg = { cols: string[]; order: string; create?: boolean; del?: boolean };
@@ -693,6 +693,6 @@ export default {
       url.protocol = 'https:';
       return secure(new Response(null, { status: 308, headers: { Location: url.toString(), 'Cache-Control': 'no-store' } }), false, url.pathname);
     }
-    return secure(await handler.fetch(req, env, ctx), env.CSP_REPORT_ONLY !== '0', url.pathname);
+    return secure(await handler.fetch(req, env, ctx), env.CSP_REPORT_ONLY === '1', url.pathname);
   },
 };
