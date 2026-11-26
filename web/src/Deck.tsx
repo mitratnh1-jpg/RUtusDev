@@ -1,6 +1,6 @@
 import { useEffect, useRef, useState, type CSSProperties, type KeyboardEvent, type PointerEvent as RPE } from 'react';
 import CodeRain from './CodeRain';
-import { onScrollFrame, clamp, reducedMotion } from './scroll';
+import { reducedMotion } from './scroll';
 
 type Variant = 'web' | 'app';
 const LAYERS: Record<Variant, string[]> = { web: ['Website', 'Landing page', 'Aplikasi'], app: ['CRM', 'Dashboard', 'Faktur'] };
@@ -26,19 +26,23 @@ function Typer() {
 }
 
 // Tumpukan kartu: geser (drag/swipe) kartu depan untuk memindahkannya ke belakang.
-// Kartu belakang "turun" membentang mengikuti posisi gulir halaman.
+// Saat tumpukan masuk layar, kartu naik dari bawah satu per satu (animasi CSS sekali jalan, bukan dihitung tiap frame scroll).
 export default function Deck({ variant }: { variant: Variant }) {
   const [order, setOrder] = useState([0, 1, 2]);
   const [drag, setDrag] = useState<{ x: number; y: number; fly?: boolean } | null>(null);
   const [used, setUsed] = useState(false);
+  const [shown, setShown] = useState(false);
   const root = useRef<HTMLDivElement>(null);
   const st = useRef({ id: -1, sx: 0, sy: 0, on: false });
   const names = LAYERS[variant];
 
+  // Satu kali: begitu tumpukan cukup terlihat, tandai `in` agar CSS memutar animasi masuknya.
   useEffect(() => {
     const el = root.current!;
-    if (reducedMotion()) { el.style.setProperty('--p', '1'); return; }
-    return onScrollFrame((_, vh) => { el.style.setProperty('--p', clamp((vh - el.getBoundingClientRect().top) / (vh * 0.85)).toFixed(3)); });
+    if (reducedMotion() || !('IntersectionObserver' in window)) { setShown(true); return; }
+    const io = new IntersectionObserver(es => { if (es.some(e => e.isIntersecting)) { setShown(true); io.disconnect(); } }, { threshold: 0.3, rootMargin: '0px 0px -6% 0px' });
+    io.observe(el);
+    return () => io.disconnect();
   }, []);
 
   const toBack = (dir: number) => {
@@ -68,7 +72,7 @@ export default function Deck({ variant }: { variant: Variant }) {
   const bring = (id: number) => { setUsed(true); setOrder(o => { const i = o.indexOf(id); return [...o.slice(i), ...o.slice(0, i)]; }); };
 
   return (
-    <div className={'deck ' + variant} ref={root} role="group" aria-label={`Tumpukan kartu ${names[order[0]]}. Geser kartu depan untuk melihat kartu lain.`}>
+    <div className={'deck ' + variant + (shown ? ' in' : '')} ref={root} role="group" aria-label={`Tumpukan kartu ${names[order[0]]}. Geser kartu depan untuk melihat kartu lain.`}>
       {[...order].reverse().map(id => {
         const d = order.indexOf(id), front = d === 0;
         const style: CSSProperties & Record<string, string | number> = { '--d': d, zIndex: 10 - d };
@@ -81,7 +85,7 @@ export default function Deck({ variant }: { variant: Variant }) {
             {variant === 'web' ? (
               <>
                 <div className="bar"><b /><b /><b /><em>{names[id]}</em></div>
-                <div className="body"><CodeRain seed={id} /></div>
+                <div className="body"><CodeRain seed={id} calm={!front} /></div>
               </>
             ) : (
               <>
