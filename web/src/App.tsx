@@ -1,10 +1,10 @@
 import { lazy, Suspense, useEffect, useMemo, useRef, useState, type ReactNode } from 'react';
 import Dots from './Dots';
-import Contact from './Contact';
+import Defer from './Defer';
 import Deck from './Deck';
 import Reveal from './Reveal';
 import { onScrollFrame, clamp, reducedMotion } from './scroll';
-import { useContent } from './useContent';
+import { useContentState } from './useContent';
 import { imgProps } from './media';
 import { PACKAGES, STACK, STEPS } from '../../shared/siteFacts';
 import type { Article, Client, Project, Service, Stats, Testimonial } from './types';
@@ -110,14 +110,17 @@ function Hero({ h, clients = [] }: { h: { eyebrow?: string; headline?: string; h
       </div>
       {/* Jejak kepercayaan di dasar hero (tablet & desktop): logo klien bila ada, selain itu teknologi yang dipakai */}
       <div className="wrap hero-logos" aria-label={logos.length ? 'Klien' : 'Teknologi'}>
-        {logos.length ? logos.map(c => <img key={c.name} {...imgProps(c.logo_key!, '150px', 320)} alt={c.name} loading="lazy" />) : HERO_STACK.map((w, i) => <StackSlot key={w[0]} words={w} offset={i * 450} />)}
+        {logos.length ? logos.map(c => <img key={c.name} {...imgProps(c.logo_key!, '150px', 320)} alt={c.name} loading="lazy" decoding="async" />) : HERO_STACK.map((w, i) => <StackSlot key={w[0]} words={w} offset={i * 450} />)}
       </div>
       <i className="corners bottom" aria-hidden="true" />
     </section>
   );
 }
 
-function Services({ items }: { items: Service[] }) {
+// Kerangka pemuatan: ukuran mendekati kartu asli agar tidak ada layout shift. Memakai kelas sendiri (bukan .cell/.dcard/.acard) supaya tidak ikut animasi reveal.
+const Sk = ({ w = '100%', h = 14, mt = 12 }: { w?: string; h?: number; mt?: number }) => <i className="sk" style={{ width: w, height: h, marginTop: mt }} />;
+
+function Services({ items, loading }: { items: Service[]; loading?: boolean }) {
   return (
     <section className="light" id="services" data-nav="light">
       <div className="wrap">
@@ -126,8 +129,10 @@ function Services({ items }: { items: Service[] }) {
         <h2><b>Semua yang bisnis butuhkan untuk tampil online.</b> <span>Dibangun agar mudah dirawat.</span></h2>
         <p className="lead dim">Satu studio untuk strategi, desain, pengembangan, dan perawatan produk digital Anda, dengan lingkungan yang aman dan terpisah.</p>
         </Reveal>
-        <div className="panel">
-          {items.length ? items.map((s, i) => (
+        <div className="panel" aria-busy={loading || undefined}>
+          {loading ? [0, 1].map(i => (
+            <div className="skcell" key={i} aria-hidden="true"><Sk h={170} mt={0} /><Sk w="60%" h={26} mt={30} /><Sk /><Sk w="85%" /><Sk w="40%" h={16} mt={24} /></div>
+          )) : items.length ? items.map((s, i) => (
             // Dua layanan pertama tetap memakai tumpukan kartu geser (Deck) + kode berputar; sisanya kartu biasa.
             // Garis pemisah disesuaikan agar rapi di grid 2 kolom walau layanan lebih dari dua.
             <article className="cell" key={s.title} style={i >= 2 ? { borderTop: '1px solid var(--line)', ...(i % 2 === 0 ? { borderLeft: 0 } : {}) } : undefined}>
@@ -160,22 +165,24 @@ function ProjectCard({ p }: { p: Project }) {
     <article className="dcard">
       <div className="dhead"><h3>{p.slug && SLUG.test(p.slug) ? <a href={`/work/${p.slug}`}>{p.title}</a> : p.title}</h3>
         {p.slug && SLUG.test(p.slug) && <a className="pillbtn" href={`/work/${p.slug}`}>Selengkapnya <i>↳</i></a>}</div>
-      {p.cover_key && COVER.test(p.cover_key) && <img className="cover" loading="lazy" {...imgProps(p.cover_key, '(max-width: 760px) 100vw, 640px', 960)} alt={p.title} />}
+      {p.cover_key && COVER.test(p.cover_key) && <img className="cover" loading="lazy" decoding="async" {...imgProps(p.cover_key, '(max-width: 760px) 100vw, 640px', 960)} alt={p.title} />}
       <p>{p.summary}</p><p className="meta">{meta}</p>
       {demo && <p className="links"><a href={demo} target="_blank" rel="noopener noreferrer">Lihat demo <i>→</i></a></p>}
     </article>
   );
 }
 
-function Work({ items }: { items: Project[] }) {
+function Work({ items, loading }: { items: Project[]; loading?: boolean }) {
   return (
     <section className="sandbg" id="work" data-nav="light">
       <Reveal className="wrap">
         <p className="pill">Karya pilihan</p>
         <h2><b>Bukti, bukan janji.</b> <span>Studi kasus yang bisa Anda lihat sendiri.</span></h2>
       </Reveal>
-      <div className="dscroll wrap">
-        {items.length ? items.map(p => <ProjectCard key={p.slug || p.title} p={p} />) : (<>
+      <div className="dscroll wrap" aria-busy={loading || undefined}>
+        {loading ? [0, 1].map(i => (
+          <div className="skdcard" key={i} aria-hidden="true"><Sk w="70%" h={28} mt={0} /><Sk h={150} mt={22} /><Sk /><Sk w="55%" /></div>
+        )) : items.length ? items.map(p => <ProjectCard key={p.slug || p.title} p={p} />) : (<>
           <article className="dcard">
             <div className="dhead"><h3>Dibangun terpisah dan aman</h3><a className="pillbtn" href="#contact">Pelajari <i>↳</i></a></div>
             <div className="nest" aria-hidden="true">
@@ -321,7 +328,7 @@ function Clients({ items }: { items: Client[] }) {
         <p className="pill">Klien</p>
         <h2><b>Dipercaya oleh</b> <span>tim dan bisnis yang kami dampingi.</span></h2>
         <ul className="cl-grid">{list.map(c => {
-          const url = httpUrl(c.website_url), img = <img loading="lazy" {...imgProps(c.logo_key!, '160px', 320)} alt={c.name} />;
+          const url = httpUrl(c.website_url), img = <img loading="lazy" decoding="async" {...imgProps(c.logo_key!, '160px', 320)} alt={c.name} />;
           return <li key={c.name}>{url ? <a href={url} target="_blank" rel="noopener noreferrer" aria-label={c.name}>{img}</a> : img}</li>;
         })}</ul>
       </div>
@@ -334,7 +341,7 @@ function ArticleCard({ a, i }: { a: Article; i: number }) {
   return (
     <article className="acard">
       <a className={'acover g' + (i % 3)} href={href}>
-        {a.cover_key && COVER.test(a.cover_key) && <img loading="lazy" {...imgProps(a.cover_key, '(max-width: 760px) 100vw, 400px', 640)} alt={a.title} />}
+        {a.cover_key && COVER.test(a.cover_key) && <img loading="lazy" decoding="async" {...imgProps(a.cover_key, '(max-width: 760px) 100vw, 400px', 640)} alt={a.title} />}
         {a.created_at && <span className="date">{tanggal(a.created_at)}</span>}
       </a>
       <div className="atitle"><h3><a href={href}>{a.title}</a></h3><a className="pillbtn light" href={href}>Baca</a></div>
@@ -343,7 +350,7 @@ function ArticleCard({ a, i }: { a: Article; i: number }) {
   );
 }
 
-function Articles({ items }: { items: Article[] }) {
+function Articles({ items, loading }: { items: Article[]; loading?: boolean }) {
   const tr = useRef<HTMLDivElement>(null);
   const [pos, setPos] = useState(0);
   const list = items.length ? items : [{ title: 'Artikel pertama segera hadir. Lihat catatan terbaru kami.' }];
@@ -361,7 +368,9 @@ function Articles({ items }: { items: Article[] }) {
           <button aria-label="Sebelumnya" onClick={() => go(-1)}>←</button><button aria-label="Berikutnya" onClick={() => go(1)}>→</button>
         </div>
       </div>
-      <div className="atrack wrap" ref={tr} onScroll={onScroll}>{list.map((a, i) => <ArticleCard key={a.slug || i} a={a} i={i} />)}</div>
+      <div className="atrack wrap" ref={tr} onScroll={onScroll} aria-busy={loading || undefined}>{loading
+        ? [0, 1, 2].map(i => <div className="skacard" key={i} aria-hidden="true"><i className="sk" /><Sk w="80%" h={20} mt={16} /><Sk w="35%" h={14} /></div>)
+        : list.map((a, i) => <ArticleCard key={a.slug || i} a={a} i={i} />)}</div>
     </section>
   );
 }
@@ -417,8 +426,8 @@ function ChatLoader({ wa, email, services }: { wa: string; email: string; servic
 }
 
 export default function App() {
-  const c = useContent(), s = c?.settings, h = s?.hero ?? {}, ct = s?.contact ?? {};
-  useReveal(c);
+  const { c, loading } = useContentState(), s = c?.settings, h = s?.hero ?? {}, ct = s?.contact ?? {};
+  useReveal(loading ? 'loading' : c);  // jalan lagi saat skeleton diganti konten asli
   const wa = /^\d{6,16}$/.test(ct.whatsapp || '') ? ct.whatsapp! : '';  // kosong = tombol WhatsApp disembunyikan (tidak ada nomor palsu)
   const email = /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(ct.email || '') ? ct.email! : 'hello@rutusdev.com';
   const testi = (c?.testimonials ?? []).slice(0, 2);
@@ -429,16 +438,16 @@ export default function App() {
       <Nav />
       <main id="top">
         <Hero h={h} clients={c?.clients ?? []} />
-        <Services items={c?.services ?? []} />
-        <Work items={c?.projects ?? []} />
+        <Services items={c?.services ?? []} loading={loading} />
+        <Work items={c?.projects ?? []} loading={loading} />
         <Trust t={testi} stats={s?.stats} />
         <Ticker stats={s?.stats} />
         <Clients items={c?.clients ?? []} />
         <Process />
         <Technology />
         <Packages />
-        <Articles items={c?.articles ?? []} />
-        <Contact wa={wa} email={email} />
+        <Articles items={c?.articles ?? []} loading={loading} />
+        <Defer wa={wa} email={email} />
       </main>
       <footer className="foot dark" data-nav="dark">
         <div className="wrap">

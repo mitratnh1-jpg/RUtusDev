@@ -804,3 +804,12 @@ button:focus-visible, a:focus-visible {
   .chat-fab{width:56px;padding:0;justify-content:center}.chat-fab-tx{display:none}
 }
 @media(prefers-reduced-motion:reduce){.chat-panel{animation:none}.chat-typing i{animation:none;opacity:.6}}
+
+/* Skeleton pemuatan (layanan, karya, artikel): menjaga tinggi bagian agar tidak bergeser saat konten CMS tiba. */
+.sk{display:block;border-radius:8px;background:linear-gradient(90deg,rgba(127,127,127,.14) 25%,rgba(127,127,127,.28) 37%,rgba(127,127,127,.14) 63%);background-size:400% 100%;animation:skel 1.4s ease infinite}
+@keyframes skel{0%{background-position:100% 50%}100%{background-position:0 50%}}
+.skcell{padding:36px 32px 40px;min-height:430px}.skcell+.skcell{border-left:1px solid var(--line)}
+.skdcard{scroll-snap-align:start;background:var(--black);border-radius:18px;padding:24px;min-height:420px}
+.skacard{scroll-snap-align:start}.skacard>.sk:first-child{aspect-ratio:1.2;border-radius:16px}
+@media(max-width:860px){.skcell+.skcell{border-left:0;border-top:1px solid var(--line)}}
+@media(prefers-reduced-motion:reduce){.sk{animation:none}}
