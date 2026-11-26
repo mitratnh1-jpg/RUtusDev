@@ -4,8 +4,10 @@ const TXT = `import { createRoot } from 'react-dom/client'; const res = await fe
 const RAMP = ' .:-=+*#%@';
 
 // Huruf kode yang bergulir, memadat menjadi "bola" ASCII yang melayang; bereaksi pada kursor/sentuhan.
-export default function CodeRain({ seed = 0 }: { seed?: number }) {
+export default function CodeRain({ seed = 0, calm = false }: { seed?: number; calm?: boolean }) {
   const ref = useRef<HTMLCanvasElement>(null);
+  const calmRef = useRef(calm);  // kartu belakang (calm) hanya ±6 fps; kartu depan tetap ±24 fps
+  calmRef.current = calm;
   useEffect(() => {
     const c = ref.current!, g = c.getContext('2d')!, box = c.parentElement!;
     const reduce = matchMedia('(prefers-reduced-motion: reduce)').matches;
@@ -20,7 +22,7 @@ export default function CodeRain({ seed = 0 }: { seed?: number }) {
     };
     const draw = (now: number) => {
       raf = reduce ? 0 : requestAnimationFrame(draw);
-      if (!vis || now - last < 42) return; // ± 24 fps
+      if (!vis || now - last < (calmRef.current ? 160 : 42)) return; // ± 24 fps (±6 fps bila calm)
       last = now;
       const t = now / 1000 + seed * 7;
       g.clearRect(0, 0, w, h);
