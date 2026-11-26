@@ -11,8 +11,13 @@
   // Rate Limiting binding bawaan Cloudflare (aktif juga di *.workers.dev). period hanya boleh 10 atau 60 detik.
   "ratelimits": [
     { "name": "RATE_LIMITER", "namespace_id": "1001", "simple": { "limit": 5, "period": 60 } },
-    { "name": "RATE_LIMITER_ADMIN", "namespace_id": "1002", "simple": { "limit": 120, "period": 60 } }
+    { "name": "RATE_LIMITER_ADMIN", "namespace_id": "1002", "simple": { "limit": 120, "period": 60 } },
+    // Chatbot publik (/api/chat): 10 pesan/menit/IP.
+    { "name": "RATE_LIMITER_CHAT", "namespace_id": "1003", "simple": { "limit": 10, "period": 60 } }
   ],
+  // Chatbot "Asisten RUtusdev" memakai Cloudflare Workers AI (tanpa API key). Kuota gratis dihitung harian; bila habis/mati,
+  // chatbot otomatis memakai FAQ bawaan (shared/chatFaq.ts). Opsional (variabel biasa): CHAT_MODEL, CHAT_ENABLED="false".
+  "ai": { "binding": "AI" },
   // Cloudflare menjadikan berkas ini sumber kebenaran: setiap `wrangler deploy` MENGGANTI seluruh set vars di dashboard dengan isi
   // blok "vars" di bawah. Itu sebabnya variabel yang hanya diisi lewat dashboard "hilang" setiap deploy.
   // keep_vars = true mencegah penghapusan itu (variabel dashboard yang TIDAK ada di berkas ini dibiarkan).

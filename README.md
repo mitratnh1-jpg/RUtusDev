@@ -106,3 +106,6 @@ Berkas admin lama (`web/public/admin/index.html`, `admin.js`) sudah dihapus; `np
 `/api/public/content` memakai `SUPABASE_SERVICE_ROLE_KEY` (secret Worker). Bila kunci itu salah/tidak ada, Supabase membalas "Invalid API key".
 Worker kini tidak meneruskan/men-cache respons error itu (halaman tampil dengan konten bawaan) dan mencatat `content <tabel> <status>` di `wrangler tail`.
 Perbaiki: `npx wrangler secret put SUPABASE_SERVICE_ROLE_KEY` dengan secret key dari Supabase → Settings → API Keys (`sb_secret_…` atau legacy `service_role`).
+
+## Chatbot & CAPTCHA kontak
+Lihat `docs/CHATBOT.md`. Binding baru di `wrangler.jsonc`: `ai` (Workers AI) dan `RATE_LIMITER_CHAT`.

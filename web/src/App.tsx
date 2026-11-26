@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState, type ReactNode } from 'react';
+import { lazy, Suspense, useEffect, useMemo, useRef, useState, type ReactNode } from 'react';
 import Dots from './Dots';
 import Contact from './Contact';
 import Deck from './Deck';
@@ -6,18 +6,9 @@ import Reveal from './Reveal';
 import { onScrollFrame, clamp, reducedMotion } from './scroll';
 import { useContent } from './useContent';
 import { imgProps } from './media';
+import { PACKAGES, STACK, STEPS } from '../../shared/siteFacts';
 import type { Article, Client, Project, Service, Stats, Testimonial } from './types';
 
-const STEPS = [
-  ['Konsultasi', 'Positioning, layanan, struktur halaman, dan konten.'], ['Desain', 'Design token, komponen, dan prototipe responsif.'],
-  ['Pengembangan', 'Frontend, CMS, API, dan pustaka media.'], ['Peluncuran', 'SEO, keamanan, uji kualitas, cadangan data, dan rilis.'],
-];
-const STACK = ['React', 'Vite', 'TypeScript', 'Cloudflare Workers', 'Supabase', 'R2'];
-const PACKAGES = [
-  { n: 'Mulai', pr: 'Landing page', d: 'Satu halaman, formulir konsultasi, dan SEO dasar. Cocok untuk memvalidasi ide dengan cepat.' },
-  { n: 'Studio', pr: 'Website + CMS', d: 'Layanan, portofolio, artikel, prospek, dan pustaka media yang bisa Anda kelola sendiri.' },
-  { n: 'Custom', pr: 'Aplikasi web', d: 'CRM, alur penjualan, penawaran, dan faktur yang mengikuti proses kerja Anda.' },
-];
 const COVER = /^uploads\/[0-9a-f-]{36}\.(png|jpg|webp|gif)$/;
 const SLUG = /^[a-z0-9-]+$/;
 const httpUrl = (u?: string) => (u && /^https?:\/\//.test(u) ? u : '');
@@ -417,12 +408,21 @@ function Progress() {
   return <div className="sprog" ref={r} aria-hidden="true" />;
 }
 
+// Chatbot dimuat terpisah (code-split) setelah halaman tampil, supaya tidak menambah beban muat awal.
+const Chat = lazy(() => import('./Chat'));
+function ChatLoader({ wa, email, services }: { wa: string; email: string; services: string[] }) {
+  const [on, setOn] = useState(false);
+  useEffect(() => { const t = setTimeout(() => setOn(true), 2500); return () => clearTimeout(t); }, []);
+  return on ? <Suspense fallback={null}><Chat wa={wa} email={email} services={services} /></Suspense> : null;
+}
+
 export default function App() {
   const c = useContent(), s = c?.settings, h = s?.hero ?? {}, ct = s?.contact ?? {};
   useReveal(c);
   const wa = /^\d{6,16}$/.test(ct.whatsapp || '') ? ct.whatsapp! : '';  // kosong = tombol WhatsApp disembunyikan (tidak ada nomor palsu)
   const email = /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(ct.email || '') ? ct.email! : 'hello@rutusdev.com';
   const testi = (c?.testimonials ?? []).slice(0, 2);
+  const svcKey = (c?.services ?? []).map(x => x.title).join('|'), svc = useMemo(() => (svcKey ? svcKey.split('|') : []), [svcKey]);
   return (
     <>
       <Progress />
@@ -446,6 +446,7 @@ export default function App() {
           <p>Rancang. Bangun. Luncurkan. · © {new Date().getFullYear()} RUtusdev</p>
         </div>
       </footer>
+      <ChatLoader wa={wa} email={email} services={svc} />
     </>
   );
 }

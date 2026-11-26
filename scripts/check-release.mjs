@@ -21,11 +21,12 @@ if ('SUPABASE_URL' in v && (placeholder(v.SUPABASE_URL) || !/^https:\/\/[a-z0-9-
 if ('SUPABASE_ANON_KEY' in v && placeholder(v.SUPABASE_ANON_KEY)) err('wrangler.jsonc: SUPABASE_ANON_KEY placeholder. Hapus barisnya dan simpan sebagai Secret (docs/ENV.md).');
 if ('TURNSTILE_SITE_KEY' in v && placeholder(v.TURNSTILE_SITE_KEY)) err('wrangler.jsonc: TURNSTILE_SITE_KEY placeholder. Hapus barisnya (isi di dashboard) atau isi nilai asli.');
 if (w.keep_vars !== true) err('wrangler.jsonc: set "keep_vars": true agar variabel dari dashboard tidak terhapus setiap deploy.');
+if (w.ai?.binding !== 'AI') warn('wrangler.jsonc: binding "ai" (AI) tidak ada: chatbot hanya memakai FAQ bawaan, tanpa Workers AI.');
 if (v.REQUIRE_MFA !== '1') warn('REQUIRE_MFA bukan "1": admin belum wajib MFA.');
 if (!/^https:\/\//.test(v.ALLOWED_ORIGIN || '') || /example|localhost/.test(v.ALLOWED_ORIGIN)) err('wrangler.jsonc: ALLOWED_ORIGIN harus domain final (https://...).');
 
 const rl = (w.ratelimits || []).map(x => x.name);
-for (const n of ['RATE_LIMITER', 'RATE_LIMITER_ADMIN']) if (!rl.includes(n)) err(`wrangler.jsonc: binding ratelimits "${n}" tidak ada.`);
+for (const n of ['RATE_LIMITER', 'RATE_LIMITER_ADMIN', 'RATE_LIMITER_CHAT']) if (!rl.includes(n)) err(`wrangler.jsonc: binding ratelimits "${n}" tidak ada.`);
 
 // web/.env
 const env = Object.fromEntries(read('web/.env').split('\n').filter(l => /^\w+=/.test(l)).map(l => [l.slice(0, l.indexOf('=')), l.slice(l.indexOf('=') + 1).trim()]));

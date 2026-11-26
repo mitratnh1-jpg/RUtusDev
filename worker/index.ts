@@ -1,5 +1,6 @@
 import { pages } from './pages';
 import { buildPdf } from './pdf';
+import { handleChat, type AiBinding } from './chat';
 import { secure } from './security';
 import { PROJECT_EMBED, PROJECT_LIST_COLS, shapeProject } from './projects';
 
@@ -11,6 +12,8 @@ export interface Env {
   NOTIFY_TO?: string; NOTIFY_FROM?: string; RESEND_API_KEY?: string; NOTIFY_WEBHOOK_URL?: string; // notifikasi lead (secret: RESEND_API_KEY, NOTIFY_WEBHOOK_URL)
   RATE_LIMITER?: { limit(o: { key: string }): Promise<{ success: boolean }> };
   RATE_LIMITER_ADMIN?: { limit(o: { key: string }): Promise<{ success: boolean }> };
+  RATE_LIMITER_CHAT?: { limit(o: { key: string }): Promise<{ success: boolean }> }; // chatbot publik (/api/chat)
+  AI?: AiBinding; CHAT_MODEL?: string; CHAT_ENABLED?: string; // chatbot: Workers AI (binding "ai"); CHAT_ENABLED="false" mematikan AI
   // Cloudflare Images binding: ubah ukuran & format (AVIF/WebP) gambar saat disajikan. Tidak ada = sajikan berkas asli.
   IMAGES?: { input(s: ReadableStream): { transform(o: { width?: number; fit?: string }): { output(o: { format: string; quality?: number }): Promise<{ response(): Response }> } } };
   REQUIRE_MFA?: string; // "1" = admin wajib MFA (akun tanpa MFA hanya bisa membuka tab Keamanan untuk mengaktifkannya)
@@ -644,9 +647,35 @@ async function publicContent(req: Request, env: Env, ctx: ExecutionContext): Pro
   return new Response(payload, { headers: { 'Content-Type': 'application/json; charset=utf-8', 'Cache-Control': 'no-cache' } });
 }
 
+// Asal permintaan (header Origin) harus domain situs sendiri. Permintaan tanpa Origin (mis. curl) tetap lewat ke pemeriksaan
+// berikutnya: perlindungan sebenarnya adalah Turnstile + rate limit, bukan header ini.
+const sameOrigin = (req: Request, env: Env) => { const o = req.headers.get('Origin'); return !o || o === (env.ALLOWED_ORIGIN || new URL(req.url).origin); };
+
+// Kunci uji Turnstile (selalu lolos) menghasilkan hostname/aksi palsu, jadi pemeriksaan keduanya dilewati hanya untuk kunci uji.
+const TS_DUMMY_SECRET = /^[123]x0{20,}[A-Za-z]{2}$/;
+type TsResult = { success?: boolean; hostname?: string; action?: string; 'error-codes'?: string[] };
+// Verifikasi token Turnstile di server. Gagal TERTUTUP: tanpa secret, jaringan gagal, timeout, token ditolak, hostname atau
+// aksi tidak cocok → ditolak. 'unavailable' = salah konfigurasi/gangguan di sisi kami (bukan salah pengunjung).
+async function verifyTurnstile(env: Env, token: string, ip: string, host: string, action: string): Promise<'ok' | 'rejected' | 'unavailable'> {
+  if (!env.TURNSTILE_SECRET) { console.error('turnstile: TURNSTILE_SECRET belum diisi'); return 'unavailable'; }
+  let r: TsResult;
+  try {
+    const f = new URLSearchParams({ secret: env.TURNSTILE_SECRET, response: token });
+    if (ip !== 'unknown') f.set('remoteip', ip);
+    const res = await fetch('https://challenges.cloudflare.com/turnstile/v0/siteverify', { method: 'POST', body: f, signal: AbortSignal.timeout(5000) });
+    r = (await res.json()) as TsResult;
+  } catch (e) { console.error('turnstile: siteverify tidak terjangkau', e); return 'unavailable'; }
+  if (!r.success) { console.warn('turnstile: token ditolak', (r['error-codes'] || []).join(',')); return 'rejected'; }
+  if (!TS_DUMMY_SECRET.test(env.TURNSTILE_SECRET)) {
+    // Token dari situs/widget lain (hostname lain, atau widget tanpa aksi "lead" seperti login admin) tidak boleh dipakai di sini.
+    if ((r.hostname || '').toLowerCase() !== host) { console.warn('turnstile: hostname tidak cocok', r.hostname); return 'rejected'; }
+    if (r.action !== action) { console.warn('turnstile: aksi tidak cocok', r.action); return 'rejected'; }
+  }
+  return 'ok';
+}
+
 async function handleLead(req: Request, env: Env, ctx: ExecutionContext): Promise<Response> {
-  const origin = req.headers.get('Origin');
-  if (origin && origin !== (env.ALLOWED_ORIGIN || new URL(req.url).origin)) return json({ error: 'forbidden' }, 403);
+  if (!sameOrigin(req, env)) return json({ error: 'forbidden' }, 403);
   const ip = req.headers.get('CF-Connecting-IP') || 'unknown';
   if (await overLimit(env.RATE_LIMITER, ip, 'lead', 5)) return json({ error: 'rate_limited' }, 429);
   const raw = await req.text();
@@ -660,10 +689,10 @@ async function handleLead(req: Request, env: Env, ctx: ExecutionContext): Promis
   if (!name || !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) return json({ error: 'invalid' }, 422);
   const token = clean(body['cf-turnstile-response'], 2048);
   if (!token) return json({ error: 'captcha' }, 400);
-  const ts = await fetch('https://challenges.cloudflare.com/turnstile/v0/siteverify', { method: 'POST',
-    body: new URLSearchParams({ secret: env.TURNSTILE_SECRET, response: token, remoteip: ip }) })
-    .then(r => r.json() as Promise<{ success: boolean }>).catch(() => ({ success: false }));
-  if (!ts.success) return json({ error: 'captcha' }, 400);
+  const host = new URL(env.ALLOWED_ORIGIN || new URL(req.url).origin).hostname.toLowerCase();
+  const cap = await verifyTurnstile(env, token, ip, host, 'lead');
+  if (cap === 'unavailable') return json({ error: 'captcha_unavailable' }, 503);
+  if (cap !== 'ok') return json({ error: 'captcha' }, 400);
   const res = await sb(env, 'leads', { method: 'POST', headers: { Prefer: 'return=minimal' },
     body: JSON.stringify({ name, email, whatsapp: whatsapp || null, service_interest: service, brief: brief || null }) });
   if (!res.ok) { console.error('supabase', res.status); return json({ error: 'server' }, 502); }
@@ -706,6 +735,12 @@ const handler = {
       if (pathname === '/admin/config.js') return new Response(`window.CFG = ${JSON.stringify({ TURNSTILE_SITE_KEY: env.TURNSTILE_SITE_KEY || '' })};\n`,
         { headers: { 'Content-Type': 'application/javascript; charset=utf-8', 'Cache-Control': 'no-store' } });
       if (pathname === '/api/public/content' && req.method === 'GET') return publicContent(req, env, ctx);
+      // Site key Turnstile (publik) untuk formulir di landing, dibaca saat runtime: halaman tidak lagi bergantung pada VITE_TURNSTILE_SITE_KEY saat build.
+      if (pathname === '/api/public/config' && req.method === 'GET') return json({ turnstileSiteKey: env.TURNSTILE_SITE_KEY && !/^GANTI/i.test(env.TURNSTILE_SITE_KEY) ? env.TURNSTILE_SITE_KEY : '' }, 200, { 'Cache-Control': 'public, max-age=300' });
+      if (pathname === '/api/chat') return handleChat(req, env, {
+        json, sameOrigin: r => sameOrigin(r, env), overLimit: ip => overLimit(env.RATE_LIMITER_CHAT, ip, 'chat', 10),
+        loadContent: async () => { const r = await publicContent(req, env, ctx); return r.ok ? r.json() : null; },
+      });
       if (pathname === '/api/diag' && req.method === 'GET' && env.DIAG === '1') return diag(env);
       if (pathname === '/api/leads') return req.method === 'POST' ? handleLead(req, env, ctx) : json({ error: 'method' }, 405);
       if (pathname === '/api/auth/login') return req.method === 'POST' ? adminLogin(req, env) : json({ error: 'method' }, 405);
