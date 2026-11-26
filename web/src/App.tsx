@@ -7,7 +7,6 @@ import { onScrollFrame, clamp, reducedMotion } from './scroll';
 import { useContentState } from './useContent';
 import { imgProps } from './media';
 import { PACKAGES, STACK, STEPS } from '../../shared/siteFacts';
-import { NAV_REGIONS } from '../../shared/seoNav';
 import type { Article, Client, Project, Service, Stats, Testimonial } from './types';
 
 const COVER = /^uploads\/[0-9a-f-]{36}\.(png|jpg|webp|gif)$/;
@@ -455,10 +454,8 @@ export default function App() {
         <div className="wrap">
           <a className="logo" href="#top"><Mark />RUtusdev</a>
           <p>Rancang. Bangun. Luncurkan. · © {new Date().getFullYear()} RUtusdev</p>
-          {/* Tautan internal ke halaman wilayah (SEO) — ringkas, tanpa menambah teks di landing */}
-          <nav className="foot-links" aria-label="Area layanan">
-            {NAV_REGIONS.map(([slug, nama]) => <a key={slug} href={`/jasa/${slug}`}>Jasa website {nama}</a>)}
-          </nav>
+          {/* Satu tautan ke hub /jasa: halaman itu menautkan semua wilayah & layanan (SEO), landing tetap bersih */}
+          <nav className="foot-links" aria-label="Layanan"><a href="/jasa">Semua layanan &amp; wilayah</a></nav>
         </div>
       </footer>
       <ChatLoader wa={wa} email={email} services={svc} />

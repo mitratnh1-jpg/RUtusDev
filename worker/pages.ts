@@ -2,7 +2,6 @@
 import type { Env } from './index';
 import { PROJECT_COLS, PROJECT_EMBED, shapeProject } from './projects';
 import { seoPage, SEO_PATHS, SEO_LASTMOD } from './seoPages';
-import { NAV_REGIONS } from '../shared/seoNav';
 
 const MEDIA_KEY = /^uploads\/[0-9a-f-]{36}\.(png|jpg|webp|gif)$/;
 const SLUG = /^[a-z0-9-]{1,100}$/;
@@ -64,7 +63,7 @@ ${ICONS}
 <link rel="stylesheet" href="/styles.css">${p.ld ? (Array.isArray(p.ld) ? p.ld.map(ld).join('') : ld(p.ld)) : ''}</head><body>
 <header class="nav"><a class="logo" href="/">${MARK}RUtusdev</a><nav class="nav-links"><a href="/#services">Layanan</a><a href="/jasa">Jasa</a><a href="/#work">Karya</a><a href="/articles">Artikel</a><a href="/#contact">Kontak</a></nav><div class="nav-actions"><a class="btn btn-ghost" href="/articles">Artikel</a><a class="btn btn-blue" href="/#contact">Hubungi kami</a></div></header>
 <main class="doc" data-nav="light"><div class="wrap">${p.body}</div></main>
-<footer class="foot dark" data-nav="dark"><div class="wrap"><a class="logo" href="/">${MARK}RUtusdev</a><p>Rancang. Bangun. Luncurkan.</p><nav class="foot-links" aria-label="Area layanan">${NAV_REGIONS.map(([s, n]) => `<a href="/jasa/${s}">${esc(n)}</a>`).join('')}</nav></div></footer>${p.status === 404 ? '' : '<script type="module" src="/chat-embed.js"></script>'}${beacon()}</body></html>`;
+<footer class="foot dark" data-nav="dark"><div class="wrap"><a class="logo" href="/">${MARK}RUtusdev</a><p>Rancang. Bangun. Luncurkan.</p><nav class="foot-links" aria-label="Layanan"><a href="/jasa">Semua layanan &amp; wilayah</a></nav></div></footer>${p.status === 404 ? '' : '<script type="module" src="/chat-embed.js"></script>'}${beacon()}</body></html>`;
   return new Response(html, { status: p.status || 200, headers: { 'Content-Type': 'text/html; charset=utf-8',
     'Cache-Control': p.status === 404 ? 'no-store' : 'public, max-age=0, must-revalidate' } });
 }
