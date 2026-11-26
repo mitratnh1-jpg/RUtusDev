@@ -35,9 +35,12 @@ const pic = (key: unknown, alt: string, sizes: string, extra = '') => {
 const safeUrl = (u: unknown) => (/^https?:\/\//.test(String(u ?? '')) ? esc(u) : '');
 
 async function get<T = any[]>(env: Env, path: string): Promise<T> {
-  const r = await fetch(`${env.SUPABASE_URL}/rest/v1/${path}`, { headers: {
-    apikey: env.SUPABASE_SERVICE_ROLE_KEY, Authorization: `Bearer ${env.SUPABASE_SERVICE_ROLE_KEY}` } });
-  return (r.ok ? r.json() : []) as Promise<T>;
+  // Gagal ambil data (secret Supabase belum diisi, jaringan, dll.) tidak boleh membuat sitemap/halaman 500: kembalikan daftar kosong.
+  try {
+    const r = await fetch(`${env.SUPABASE_URL}/rest/v1/${path}`, { headers: {
+      apikey: env.SUPABASE_SERVICE_ROLE_KEY, Authorization: `Bearer ${env.SUPABASE_SERVICE_ROLE_KEY}` } });
+    return (r.ok ? await r.json() : []) as T;
+  } catch (e) { console.error('pages.get', e); return [] as T; }
 }
 
 let BEACON = ''; // token Cloudflare Web Analytics (diisi dari env tiap request; konstan per deployment)
