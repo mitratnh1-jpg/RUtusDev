@@ -218,7 +218,7 @@ export default function Chat({ wa, email, services }: Props) {
           </div>
           <div className="chat-foot">
             <div className="chat-chips" aria-label="Pertanyaan cepat">
-              <a className="chat-chip cta" href="#contact" onClick={close}>Buka formulir</a>
+              <a className="chat-chip cta" href="/#contact" onClick={close}>Buka formulir</a>
               {waUrl && <a className="chat-chip cta" href={waUrl} target="_blank" rel="noopener noreferrer">WhatsApp</a>}
               {quick.map(f => <button key={f.id} type="button" className="chat-chip" disabled={loading} onClick={() => askQuick(f.id)}>{f.q}</button>)}
             </div>

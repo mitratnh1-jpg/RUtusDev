@@ -54,8 +54,8 @@ function layout(origin: string, p: Page): Response {
 <link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@300;400;500;600;700&family=Inter:wght@400;500;600&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
 <link rel="stylesheet" href="/styles.css">${p.ld ? ld(p.ld) : ''}</head><body>
 <header class="nav"><a class="logo" href="/"><svg class="mark" viewBox="0 0 24 24" aria-hidden="true"><rect x="2" y="13" width="6" height="6" rx="1.5"/><rect x="9" y="13" width="6" height="6" rx="1.5"/><rect x="16" y="13" width="6" height="6" rx="1.5"/><rect x="9" y="5" width="6" height="6" rx="1.5"/></svg>RUtusdev</a><nav class="nav-links"><a href="/#services">Layanan</a><a href="/#work">Karya</a><a href="/articles">Artikel</a><a href="/#contact">Kontak</a></nav><div class="nav-actions"><a class="btn btn-ghost" href="/articles">Artikel</a><a class="btn btn-blue" href="/#contact">Hubungi kami</a></div></header>
-<main class="doc"><div class="wrap">${p.body}</div></main>
-<footer class="foot dark"><div class="wrap"><a class="logo" href="/">RUtusdev</a><p>Rancang. Bangun. Luncurkan.</p></div></footer>${beacon()}</body></html>`;
+<main class="doc" data-nav="light"><div class="wrap">${p.body}</div></main>
+<footer class="foot dark" data-nav="dark"><div class="wrap"><a class="logo" href="/">RUtusdev</a><p>Rancang. Bangun. Luncurkan.</p></div></footer>${p.status === 404 ? '' : '<script type="module" src="/chat-embed.js"></script>'}${beacon()}</body></html>`;
   return new Response(html, { status: p.status || 200, headers: { 'Content-Type': 'text/html; charset=utf-8',
     'Cache-Control': p.status === 404 ? 'no-store' : 'public, max-age=0, must-revalidate' } });
 }

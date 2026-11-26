@@ -19,6 +19,9 @@ Perubahan:
 - Variabel opsional: `CHAT_MODEL` (model pertama yang dicoba), `CHAT_ENABLED="false"` (matikan AI, FAQ saja).
 - Fakta situs (proses, paket, stack) ada di `shared/siteFacts.ts` dan dipakai halaman dan chatbot sekaligus.
 - Tampil hanya setelah pengunjung menggulir keluar dari Hero (Hero bersih dari chatbot); kembali ke Hero = tombol/jendela disembunyikan lagi, percakapan tetap tersimpan.
+- Juga tampil di halaman anak yang dirender Worker (`/articles`, `/articles/:slug`, `/work/:slug`, `/services/:slug`): halaman itu bukan SPA, jadi
+  `worker/pages.ts` memuat `/chat-embed.js` (entri `web/src/chat-embed.tsx`, nama tetap lewat `vite.config.ts`) yang memasang komponen `Chat` yang sama.
+  Di halaman tanpa Hero, chatbot langsung tampil. Halaman 404 tidak memuatnya.
 - Suara (hanya bila peramban mendukung): tombol mikrofon mengisi kolom ketik dengan hasil ucapan (bahasa `id-ID`, API Web Speech milik peramban; di Chrome audio diproses server peramban),
   tombol speaker di header menyalakan baca otomatis jawaban, dan tiap jawaban punya tombol "Dengarkan". Pertanyaan yang diucapkan otomatis dibacakan jawabannya.
   `AUTO_SEND_VOICE` di `web/src/Chat.tsx` (default `false`) mengatur apakah hasil ucapan langsung dikirim. Butuh `microphone=(self)` di Permissions-Policy
