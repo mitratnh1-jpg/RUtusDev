@@ -7,6 +7,7 @@ import { onScrollFrame, clamp, reducedMotion } from './scroll';
 import { useContentState } from './useContent';
 import { imgProps } from './media';
 import { PACKAGES, STACK, STEPS } from '../../shared/siteFacts';
+import { NAV_REGIONS } from '../../shared/seoNav';
 import type { Article, Client, Project, Service, Stats, Testimonial } from './types';
 
 const COVER = /^uploads\/[0-9a-f-]{36}\.(png|jpg|webp|gif)$/;
@@ -15,11 +16,12 @@ const httpUrl = (u?: string) => (u && /^https?:\/\//.test(u) ? u : '');
 const tanggal = (s?: string) => (s ? new Date(s).toLocaleDateString('id-ID', { day: 'numeric', month: 'long', year: 'numeric' }).toUpperCase() : '');
 const inisial = (s: string) => (s.trim()[0] || 'R').toUpperCase();
 
+// Logo RUtusdev: tiga kotak di bawah mengikuti warna teks, kotak atas selalu biru (#4755F6, lihat .m-top di styles.css).
 function Mark() {
   return (
     <svg className="mark" viewBox="0 0 24 24" aria-hidden="true">
-      <rect x="2" y="13" width="6" height="6" rx="1.5" /><rect x="9" y="13" width="6" height="6" rx="1.5" />
-      <rect x="16" y="13" width="6" height="6" rx="1.5" /><rect x="9" y="5" width="6" height="6" rx="1.5" />
+      <rect className="m-top" x="9" y="5" width="6" height="6" rx="1.5" />
+      <rect x="2" y="13" width="6" height="6" rx="1.5" /><rect x="9" y="13" width="6" height="6" rx="1.5" /><rect x="16" y="13" width="6" height="6" rx="1.5" />
     </svg>
   );
 }
@@ -101,7 +103,7 @@ function Hero({ h, clients = [] }: { h: { eyebrow?: string; headline?: string; h
       <Dots />
       {['Website', 'CMS', 'API', 'CRM'].map((t, i) => <span key={t} className={'tag t' + (i + 1)} aria-hidden="true">{t}</span>)}
       <div className="wrap hero-in">
-        <p className="badge"><i className="dot" />{h.eyebrow || 'Studio pengembangan digital'}</p>
+        <p className="badge"><i className="dot" />{h.eyebrow || 'Software house & jasa pembuatan website Jawa Tengah'}</p>
         <h1><b>{h.headline || 'Kami membangun pengalaman digital'}</b><br /><span>{h.headline_dim || 'yang menggerakkan bisnis Anda.'}</span></h1>
         <div className="hero-side">
           <p className="lead">{h.subheadline || 'Website, aplikasi web, dan solusi digital custom — dirancang, dibangun, dan diluncurkan sampai siap dipakai.'}</p>
@@ -453,6 +455,10 @@ export default function App() {
         <div className="wrap">
           <a className="logo" href="#top"><Mark />RUtusdev</a>
           <p>Rancang. Bangun. Luncurkan. · © {new Date().getFullYear()} RUtusdev</p>
+          {/* Tautan internal ke halaman wilayah (SEO) — ringkas, tanpa menambah teks di landing */}
+          <nav className="foot-links" aria-label="Area layanan">
+            {NAV_REGIONS.map(([slug, nama]) => <a key={slug} href={`/jasa/${slug}`}>Jasa website {nama}</a>)}
+          </nav>
         </div>
       </footer>
       <ChatLoader wa={wa} email={email} services={svc} />

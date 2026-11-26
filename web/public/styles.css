@@ -24,7 +24,7 @@ h3{font-size:24px;margin:28px 0 10px}
 .nav-dark{background:rgba(24,24,27,.72);border-color:rgba(255,255,255,.1);color:#fff;box-shadow:none}
 .nav-blue{background:rgba(2,132,199,.55);border-color:rgba(255,255,255,.25);color:#fff;box-shadow:none}
 .logo{display:inline-flex;align-items:center;gap:8px;font:700 22px var(--head);letter-spacing:-.04em}
-.mark{width:26px;height:26px;fill:currentColor}.logo .mark{fill:var(--blue)}.nav-dark .logo .mark,.nav-blue .logo .mark,.foot .logo .mark{fill:#fff}
+.mark{width:26px;height:26px;fill:currentColor}.logo .mark{fill:var(--ink)}.mark .m-top{fill:#4755f6}.tick .mark rect{fill:#fff}.nav-dark .logo .mark,.nav-blue .logo .mark,.foot .logo .mark{fill:#fff}
 .nav-links{display:flex;gap:26px;font-size:15px}.nav-links a{opacity:.72}.nav-links a:hover{opacity:1}
 .nav-actions{display:flex;align-items:center;gap:8px}
 .btn{display:inline-flex;align-items:center;justify-content:center;font:500 15px/1 var(--body);padding:13px 20px;border-radius:7px;border:1px solid transparent;cursor:pointer;white-space:nowrap;transition:transform .15s,background .15s}
@@ -827,3 +827,16 @@ button:focus-visible, a:focus-visible {
 .skacard{scroll-snap-align:start}.skacard>.sk:first-child{aspect-ratio:1.2;border-radius:16px}
 @media(max-width:860px){.skcell+.skcell{border-left:0;border-top:1px solid var(--line)}}
 @media(prefers-reduced-motion:reduce){.sk{animation:none}}
+
+/* Halaman SEO /jasa/* (dirender Worker) */
+.crumbs{display:flex;flex-wrap:wrap;align-items:center;gap:8px;font:12px var(--mono);color:var(--dim)}.crumbs i{font-style:normal;opacity:.5}.crumbs a:hover{text-decoration:underline}
+.doc h2{font-size:clamp(22px,3vw,30px);margin:48px 0 8px;max-width:none}
+.doc .cta{display:flex;flex-wrap:wrap;gap:10px;margin-top:28px}
+.btn-line{background:transparent;color:var(--ink);border-color:#cfc9c1}.btn-line:hover{background:var(--sand)}
+.svc-grid{list-style:none;padding:0;display:grid;grid-template-columns:repeat(auto-fill,minmax(230px,1fr));gap:12px;margin-top:16px}
+.svc-grid li{padding:18px;border:1px solid var(--line);border-radius:10px;background:#fff}.svc-grid h3{font-size:18px;margin-bottom:6px}.svc-grid p{font-size:15px;color:var(--dim)}
+.steps-l{margin:12px 0 0 1.2em;display:grid;gap:6px}.steps-l b{font-weight:600}
+.faq h3{font-size:18px;margin:20px 0 4px}.faq p{color:var(--dim);max-width:68ch}
+.rel{display:flex;flex-wrap:wrap;gap:8px;margin-top:12px}.rel a{border:1px solid var(--line);border-radius:999px;padding:7px 14px;font-size:14px;color:var(--ink)!important;background:#fff}.rel a:hover{border-color:var(--blue);color:var(--blue)!important}
+.foot-links{display:flex;flex-wrap:wrap;gap:6px 16px;width:100%;font:12px var(--mono);color:#85858f}.foot-links a:hover{color:#fff}
+.foot .logo .mark{fill:#fff}

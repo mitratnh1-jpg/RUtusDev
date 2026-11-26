@@ -1,6 +1,8 @@
 // Halaman publik yang dirender server (SEO): /articles, /articles/:slug, /work/:slug, /sitemap.xml, /robots.txt
 import type { Env } from './index';
 import { PROJECT_COLS, PROJECT_EMBED, shapeProject } from './projects';
+import { seoPage, SEO_PATHS, SEO_LASTMOD } from './seoPages';
+import { NAV_REGIONS } from '../shared/seoNav';
 
 const MEDIA_KEY = /^uploads\/[0-9a-f-]{36}\.(png|jpg|webp|gif)$/;
 const SLUG = /^[a-z0-9-]{1,100}$/;
@@ -42,25 +44,32 @@ async function get<T = any[]>(env: Env, path: string): Promise<T> {
 let BEACON = ''; // token Cloudflare Web Analytics (diisi dari env tiap request; konstan per deployment)
 const beacon = () => (/^[a-f0-9]{32}$/i.test(BEACON) ? `<script defer src="https://static.cloudflareinsights.com/beacon.min.js" data-cf-beacon='{"token":"${BEACON}"}'></script>` : '');
 
-type Page = { title: string; desc: string; path: string; og?: string; type?: string; body: string; ld?: unknown; status?: number };
+type Page = { title: string; desc: string; path: string; og?: string; type?: string; body: string; ld?: unknown; status?: number; kw?: string[] };
+const MARK = '<svg class="mark" viewBox="0 0 24 24" aria-hidden="true"><rect class="m-top" x="9" y="5" width="6" height="6" rx="1.5"/><rect x="2" y="13" width="6" height="6" rx="1.5"/><rect x="9" y="13" width="6" height="6" rx="1.5"/><rect x="16" y="13" width="6" height="6" rx="1.5"/></svg>';
+// Ikon, manifest, dan warna tema: sama dengan index.html (sumber: logo RUtusdev). Berkas ada di web/public.
+const ICONS = `<link rel="icon" href="/favicon.ico" sizes="48x48"><link rel="icon" href="/favicon.svg" type="image/svg+xml"><link rel="icon" type="image/png" sizes="32x32" href="/favicon-32x32.png"><link rel="icon" type="image/png" sizes="16x16" href="/favicon-16x16.png">
+<link rel="apple-touch-icon" sizes="180x180" href="/apple-touch-icon.png"><link rel="mask-icon" href="/safari-pinned-tab.svg" color="#4755f6"><link rel="manifest" href="/site.webmanifest"><meta name="theme-color" content="#0a0a0a"><meta name="msapplication-TileColor" content="#0a0a0a"><meta name="msapplication-config" content="/browserconfig.xml">`;
 function layout(origin: string, p: Page): Response {
-  const url = origin + p.path, img = p.og ? `${origin}/media/${esc(p.og)}` : '';
+  const url = origin + p.path, img = p.og ? `${origin}/media/${esc(p.og)}` : `${origin}/og-image.png`;
   const html = `<!doctype html><html lang="id"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
-<title>${esc(p.title)}</title><meta name="description" content="${esc(p.desc)}"><link rel="canonical" href="${esc(url)}">
-<meta property="og:site_name" content="RUtusdev"><meta property="og:type" content="${p.type || 'website'}"><meta property="og:title" content="${esc(p.title)}">
-<meta property="og:description" content="${esc(p.desc)}"><meta property="og:url" content="${esc(url)}">${img ? `<meta property="og:image" content="${img}">` : ''}
-<meta name="twitter:card" content="${img ? 'summary_large_image' : 'summary'}">${p.status === 404 ? '<meta name="robots" content="noindex">' : ''}
+<title>${esc(p.title)}</title><meta name="description" content="${esc(p.desc)}">${p.kw?.length ? `<meta name="keywords" content="${esc(p.kw.join(', '))}">` : ''}<link rel="canonical" href="${esc(url)}">
+<meta name="robots" content="${p.status === 404 ? 'noindex' : 'index,follow,max-image-preview:large,max-snippet:-1,max-video-preview:-1'}"><link rel="alternate" hreflang="id" href="${esc(url)}"><link rel="alternate" hreflang="x-default" href="${esc(url)}">
+<meta name="geo.region" content="ID-JT"><meta name="geo.placename" content="Jawa Tengah">
+<meta property="og:site_name" content="RUtusdev"><meta property="og:locale" content="id_ID"><meta property="og:type" content="${p.type || 'website'}"><meta property="og:title" content="${esc(p.title)}">
+<meta property="og:description" content="${esc(p.desc)}"><meta property="og:url" content="${esc(url)}"><meta property="og:image" content="${img}">${p.og ? '' : '<meta property="og:image:width" content="1200"><meta property="og:image:height" content="630"><meta property="og:image:type" content="image/png">'}<meta property="og:image:alt" content="${esc(p.title)}">
+<meta name="twitter:card" content="summary_large_image"><meta name="twitter:title" content="${esc(p.title)}"><meta name="twitter:description" content="${esc(p.desc)}"><meta name="twitter:image" content="${img}">
+${ICONS}
 <link rel="preconnect" href="https://fonts.googleapis.com"><link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@300;400;500;600;700&family=Inter:wght@400;500;600&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
-<link rel="stylesheet" href="/styles.css">${p.ld ? ld(p.ld) : ''}</head><body>
-<header class="nav"><a class="logo" href="/"><svg class="mark" viewBox="0 0 24 24" aria-hidden="true"><rect x="2" y="13" width="6" height="6" rx="1.5"/><rect x="9" y="13" width="6" height="6" rx="1.5"/><rect x="16" y="13" width="6" height="6" rx="1.5"/><rect x="9" y="5" width="6" height="6" rx="1.5"/></svg>RUtusdev</a><nav class="nav-links"><a href="/#services">Layanan</a><a href="/#work">Karya</a><a href="/articles">Artikel</a><a href="/#contact">Kontak</a></nav><div class="nav-actions"><a class="btn btn-ghost" href="/articles">Artikel</a><a class="btn btn-blue" href="/#contact">Hubungi kami</a></div></header>
+<link rel="stylesheet" href="/styles.css">${p.ld ? (Array.isArray(p.ld) ? p.ld.map(ld).join('') : ld(p.ld)) : ''}</head><body>
+<header class="nav"><a class="logo" href="/">${MARK}RUtusdev</a><nav class="nav-links"><a href="/#services">Layanan</a><a href="/jasa">Jasa</a><a href="/#work">Karya</a><a href="/articles">Artikel</a><a href="/#contact">Kontak</a></nav><div class="nav-actions"><a class="btn btn-ghost" href="/articles">Artikel</a><a class="btn btn-blue" href="/#contact">Hubungi kami</a></div></header>
 <main class="doc" data-nav="light"><div class="wrap">${p.body}</div></main>
-<footer class="foot dark" data-nav="dark"><div class="wrap"><a class="logo" href="/">RUtusdev</a><p>Rancang. Bangun. Luncurkan.</p></div></footer>${p.status === 404 ? '' : '<script type="module" src="/chat-embed.js"></script>'}${beacon()}</body></html>`;
+<footer class="foot dark" data-nav="dark"><div class="wrap"><a class="logo" href="/">${MARK}RUtusdev</a><p>Rancang. Bangun. Luncurkan.</p><nav class="foot-links" aria-label="Area layanan">${NAV_REGIONS.map(([s, n]) => `<a href="/jasa/${s}">${esc(n)}</a>`).join('')}</nav></div></footer>${p.status === 404 ? '' : '<script type="module" src="/chat-embed.js"></script>'}${beacon()}</body></html>`;
   return new Response(html, { status: p.status || 200, headers: { 'Content-Type': 'text/html; charset=utf-8',
     'Cache-Control': p.status === 404 ? 'no-store' : 'public, max-age=0, must-revalidate' } });
 }
 const notFound = (o: string) => layout(o, { title: 'Halaman tidak ditemukan — RUtusdev', desc: 'Halaman tidak ditemukan.', path: '/404', status: 404,
-  body: '<h1>Halaman tidak ditemukan</h1><p class="lead">Kembali ke <a href="/">beranda</a> atau lihat <a href="/articles">artikel</a>.</p>' });
+  body: '<h1>Halaman tidak ditemukan</h1><p class="lead">Kembali ke <a href="/">beranda</a> atau lihat <a href="/jasa">layanan kami</a>.</p>' });
 
 export async function pages(req: Request, env: Env, path: string): Promise<Response | null> {
   const origin = env.ALLOWED_ORIGIN || new URL(req.url).origin;
@@ -68,16 +77,27 @@ export async function pages(req: Request, env: Env, path: string): Promise<Respo
   if (req.method !== 'GET') return null;
 
   if (path === '/robots.txt')
-    return new Response(`User-agent: *\nAllow: /\n\nSitemap: ${origin}/sitemap.xml\n`, { headers: { 'Content-Type': 'text/plain' } });
+    return new Response(`User-agent: *\nAllow: /\nDisallow: /api/\n\nSitemap: ${origin}/sitemap.xml\n`, { headers: { 'Content-Type': 'text/plain' } });
 
   if (path === '/sitemap.xml') {
-    const [a, p, sv] = await Promise.all([get(env, 'articles?status=eq.published&select=slug,created_at'), get(env, 'projects?status=eq.published&select=slug,created_at,published_at'), get(env, 'services?is_published=eq.true&select=slug,created_at')]);
-    const u = (loc: string, d?: string) => `<url><loc>${esc(origin + loc)}</loc>${d ? `<lastmod>${d.slice(0, 10)}</lastmod>` : ''}</url>`;
-    const xml = `<?xml version="1.0" encoding="UTF-8"?><urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">${u('/')}${u('/articles')}` +
-      a.filter((x: any) => SLUG.test(x.slug || '')).map((x: any) => u('/articles/' + x.slug, x.created_at)).join('') +
-      p.filter((x: any) => SLUG.test(x.slug || '')).map((x: any) => u('/work/' + x.slug, x.published_at || x.created_at)).join('') +
+    const [a, p, sv] = await Promise.all([get(env, 'articles?status=eq.published&select=slug,title,cover_key,created_at'), get(env, 'projects?status=eq.published&select=slug,title,cover_key,created_at,published_at'), get(env, 'services?is_published=eq.true&select=slug,created_at')]);
+    // Sitemap gambar (xmlns:image): logo & OG di beranda, sampul artikel/karya agar gambar ikut terindeks Google Images.
+    const im = (k: unknown, t?: unknown) => (MEDIA_KEY.test(String(k ?? '')) ? `<image:image><image:loc>${esc(origin + '/media/' + k)}</image:loc>${t ? `<image:title>${esc(t)}</image:title>` : ''}</image:image>` : '');
+    const stat = (f: string, t: string) => `<image:image><image:loc>${esc(origin + f)}</image:loc><image:title>${esc(t)}</image:title></image:image>`;
+    const u = (loc: string, d?: string, extra = '') => `<url><loc>${esc(origin + loc)}</loc>${d ? `<lastmod>${d.slice(0, 10)}</lastmod>` : ''}${extra}</url>`;
+    const xml = `<?xml version="1.0" encoding="UTF-8"?><urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9" xmlns:image="http://www.google.com/schemas/sitemap-image/1.1">` +
+      u('/', SEO_LASTMOD, stat('/logo.png', 'Logo RUtusdev') + stat('/og-image.png', 'RUtusdev — Jasa Pembuatan Website & Aplikasi Jawa Tengah')) + u('/articles') +
+      SEO_PATHS.map(x => u(x, SEO_LASTMOD)).join('') +
+      a.filter((x: any) => SLUG.test(x.slug || '')).map((x: any) => u('/articles/' + x.slug, x.created_at, im(x.cover_key, x.title))).join('') +
+      p.filter((x: any) => SLUG.test(x.slug || '')).map((x: any) => u('/work/' + x.slug, x.published_at || x.created_at, im(x.cover_key, x.title))).join('') +
       sv.filter((x: any) => SLUG.test(x.slug || '')).map((x: any) => u('/services/' + x.slug, x.created_at)).join('') + '</urlset>';
-    return new Response(xml, { headers: { 'Content-Type': 'application/xml', 'Cache-Control': 'public, max-age=300' } });
+    return new Response(xml, { headers: { 'Content-Type': 'application/xml; charset=utf-8', 'Cache-Control': 'public, max-age=300' } });
+  }
+
+  // Halaman SEO per wilayah/penawaran (data statis, tanpa database).
+  if (path === '/jasa' || path.startsWith('/jasa/')) {
+    const sp = seoPage(path, origin);
+    return sp ? layout(origin, sp) : notFound(origin);
   }
 
   if (path === '/articles') {

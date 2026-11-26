@@ -34,6 +34,8 @@ Tidak ada lagi nomor WhatsApp, testimoni, atau statistik contoh di kode. WhatsAp
 (kosong = disembunyikan); testimoni dari Admin → Testimoni. `npm run check:release` memastikan tidak ada placeholder tersisa.
 
 ## SEO & halaman publik
+Halaman SEO per wilayah/penawaran (`/jasa`, `/jasa/:slug`), ikon dari logo, sitemap gambar, dan panduan Search Console: lihat `docs/SEO.md`.
+
 Worker merender `/articles`, `/articles/:slug`, `/work/:slug` (title, description, canonical, Open Graph,
 JSON-LD), plus `/sitemap.xml` dan `/robots.txt`. Hanya konten berstatus terbit yang tampil; slug wajib
 huruf kecil/angka/minus. Isi artikel & proyek ditampilkan sebagai teks biasa (paragraf dipisah baris kosong).

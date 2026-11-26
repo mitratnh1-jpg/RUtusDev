@@ -1,0 +1,367 @@
+// Konten halaman SEO /jasa/* (data murni, dirender Worker di worker/seoPages.ts).
+// Prinsip: satu halaman per wilayah/penawaran, teks ringkas tetapi unik, tanpa angka harga/klaim yang tidak ada di situs.
+// Ubah teks di sini lalu deploy; sitemap, canonical, JSON-LD, dan tautan internal ikut otomatis.
+import { REPLY_TIME } from './siteFacts';
+export { NAV_REGIONS, NAV_OFFERS } from './seoNav';
+
+export const SEO_LASTMOD = '2026-11-26'; // perbarui saat konten halaman SEO diubah
+export type Item = { t: string; d: string };
+export type Faq = { q: string; a: string };
+export type Region = { slug: string; name: string; title: string; desc: string; h1: string; lead: string; svcs: Item[]; faq: Faq[]; kw: string[] };
+export type Offer = { slug: string; title: string; desc: string; h1: string; lead: string; ptitle: string; points: Item[]; faq: Faq[]; kw: string[] };
+
+const reply = `Balasan pertama dalam ${REPLY_TIME}.`;
+const faqProses = (kota: string): Faq => ({ q: `Bagaimana cara minta penawaran dari ${kota}?`, a: `Isi formulir di halaman utama dan ceritakan kebutuhan Anda. ${reply} Konsultasi dilakukan online, jadi bisnis di ${kota} bisa langsung mulai tanpa harus datang.` });
+const faqDurasi: Faq = { q: 'Berapa lama pengerjaannya?', a: 'Tergantung ruang lingkup. Landing page paling singkat; website dengan CMS dan aplikasi custom butuh waktu lebih panjang. Estimasi waktu dan biaya diberikan tertulis setelah diskusi kebutuhan.' };
+
+export const REGIONS: Region[] = [
+  {
+    slug: 'pembuatan-website-jawa-tengah', name: 'Jawa Tengah',
+    title: 'Jasa Pembuatan Website & Aplikasi Jawa Tengah | RUtusdev',
+    desc: 'Software house Jawa Tengah: jasa pembuatan website, aplikasi android, sistem informasi, dan toko online untuk bisnis di Jateng. Minta penawaran sekarang.',
+    h1: 'Jasa Pembuatan Website & Aplikasi di Jawa Tengah',
+    lead: 'RUtusdev adalah software house dan web developer untuk bisnis, pabrik, UMKM, dan instansi di Jawa Tengah. Dari company profile sampai sistem informasi custom.',
+    svcs: [
+      { t: 'Website company profile', d: 'Profil perusahaan yang cepat, responsif, dan siap SEO.' },
+      { t: 'Aplikasi android & web', d: 'Aplikasi custom untuk operasional dan pelanggan Anda.' },
+      { t: 'Sistem informasi', d: 'Dashboard, laporan, dan alur kerja internal dalam satu sistem.' },
+      { t: 'Toko online', d: 'Katalog, keranjang, dan pesanan yang mudah dikelola.' },
+      { t: 'Vendor IT perusahaan', d: 'Tim pengembang untuk proyek digital perusahaan dan instansi.' },
+      { t: 'Redesign & maintenance', d: 'Perbaikan dan perawatan rutin website atau aplikasi yang sudah ada.' },
+    ],
+    faq: [
+      { q: 'Apakah RUtusdev melayani seluruh Jawa Tengah?', a: 'Ya. Proyek dikerjakan dengan konsultasi online, jadi bisnis di kota mana pun di Jateng bisa dilayani. Halaman wilayah di bawah menjelaskan kebutuhan khas tiap daerah.' },
+      faqDurasi, faqProses('Jawa Tengah'),
+    ],
+    kw: ['jasa pembuatan website jawa tengah', 'jasa pembuatan aplikasi jawa tengah', 'software house jawa tengah', 'web developer jawa tengah', 'jasa bikin website perusahaan jateng', 'jasa pembuatan aplikasi android jawa tengah', 'jasa pembuatan sistem informasi jawa tengah', 'vendor IT jawa tengah', 'jasa buat toko online jawa tengah', 'jasa pembuatan web company profile jateng'],
+  },
+  {
+    slug: 'pembuatan-website-batang', name: 'Batang',
+    title: 'Jasa Pembuatan Website & Aplikasi Batang | Software House',
+    desc: 'Jasa pembuatan website dan aplikasi di Batang: company profile, website kontraktor KITB, aplikasi HRIS & absensi pabrik, dan sistem ERP manufaktur.',
+    h1: 'Jasa Pembuatan Website & Aplikasi di Batang',
+    lead: 'Software house dan web developer untuk perusahaan, kontraktor, dan pabrik di Batang, termasuk yang beraktivitas di sekitar Kawasan Industri Terpadu Batang (KITB).',
+    svcs: [
+      { t: 'Website company profile Batang', d: 'Profil perusahaan profesional untuk memenangkan kepercayaan calon mitra dan klien.' },
+      { t: 'Website kontraktor KITB Batang', d: 'Portofolio proyek, legalitas, dan formulir penawaran untuk kontraktor dan vendor kawasan industri.' },
+      { t: 'Aplikasi HRIS & absensi pabrik', d: 'Data karyawan, absensi, cuti, dan laporan kehadiran dalam satu aplikasi.' },
+      { t: 'Sistem ERP manufaktur', d: 'Produksi, stok bahan, dan pesanan terhubung agar keputusan berbasis data.' },
+      { t: 'Aplikasi custom Batang', d: 'Aplikasi web dan android yang mengikuti alur kerja bisnis Anda.' },
+      { t: 'Web perusahaan multibahasa', d: 'Versi Indonesia dan Inggris untuk perusahaan yang bermitra dengan investor atau pembeli luar negeri.' },
+    ],
+    faq: [
+      { q: 'Apakah bisa membuat website untuk kontraktor di kawasan industri Batang?', a: 'Bisa. Kami menyusun halaman portofolio, daftar layanan, dan formulir penawaran yang memudahkan calon klien industri menghubungi Anda.' },
+      { q: 'Apakah aplikasi HRIS dan absensi bisa disesuaikan dengan aturan pabrik?', a: 'Bisa. Jam kerja, shift, dan aturan cuti dirancang mengikuti kebijakan perusahaan Anda, bukan sebaliknya.' },
+      faqProses('Batang'),
+    ],
+    kw: ['jasa pembuatan website batang', 'jasa pembuatan aplikasi batang', 'jasa bikin website batang', 'web developer batang', 'software house batang', 'jasa website company profile batang', 'jasa pembuatan website kontraktor KITB batang', 'aplikasi HRIS dan absensi pabrik batang', 'sistem ERP manufaktur batang', 'jasa pembuatan web perusahaan batang'],
+  },
+  {
+    slug: 'pembuatan-website-pekalongan', name: 'Pekalongan',
+    title: 'Jasa Pembuatan Website & Aplikasi Pekalongan | RUtusdev',
+    desc: 'Jasa buat website dan aplikasi di Pekalongan: toko online batik, aplikasi kasir POS, stok kain & konveksi, website grosir batik, dan manajemen reseller.',
+    h1: 'Jasa Pembuatan Website & Aplikasi di Pekalongan',
+    lead: 'Web developer dan software house untuk pelaku usaha batik, konveksi, dan UMKM di Pekalongan yang ingin berjualan dan mengelola usaha lebih rapi.',
+    svcs: [
+      { t: 'Toko online batik Pekalongan', d: 'Katalog motif, varian ukuran, dan pesanan yang mudah dikelola dari satu dashboard.' },
+      { t: 'Aplikasi kasir POS', d: 'Kasir cepat untuk toko dan butik, lengkap dengan laporan penjualan harian.' },
+      { t: 'Aplikasi stok kain & konveksi', d: 'Pantau stok kain, bahan, dan barang jadi agar produksi tidak terhambat.' },
+      { t: 'Website grosir batik', d: 'Halaman produk dan harga grosir untuk pembeli partai besar dan butik luar kota.' },
+      { t: 'Sistem manajemen reseller', d: 'Data reseller, harga khusus, dan riwayat order tercatat dalam satu sistem.' },
+      { t: 'Website company profile', d: 'Profil usaha yang menampilkan cerita, kualitas, dan kontak dengan jelas.' },
+    ],
+    faq: [
+      { q: 'Apakah toko online batik bisa menampilkan banyak varian motif dan ukuran?', a: 'Bisa. Setiap produk dapat memiliki varian motif, warna, dan ukuran dengan stok masing-masing.' },
+      { q: 'Apakah aplikasi kasir bisa dipakai bersama stok konveksi?', a: 'Bisa. Penjualan di kasir otomatis mengurangi stok, sehingga data toko dan gudang selalu sinkron.' },
+      faqProses('Pekalongan'),
+    ],
+    kw: ['jasa pembuatan website pekalongan', 'jasa pembuatan aplikasi pekalongan', 'jasa buat website pekalongan', 'software house pekalongan', 'web developer pekalongan', 'jasa buat toko online batik pekalongan', 'aplikasi kasir POS pekalongan', 'aplikasi stok kain dan konveksi pekalongan', 'jasa website grosir batik pekalongan', 'sistem manajemen reseller pekalongan'],
+  },
+  {
+    slug: 'pembuatan-website-kendal', name: 'Kendal',
+    title: 'Jasa Pembuatan Website & Aplikasi Kendal | RUtusdev',
+    desc: 'Jasa pembuatan website dan aplikasi di Kendal: website pabrik kawasan industri, company profile bahasa Inggris, aplikasi gudang, dan portal rekrutmen.',
+    h1: 'Jasa Pembuatan Website & Aplikasi di Kendal',
+    lead: 'Software house dan web developer untuk perusahaan manufaktur, logistik, dan kontraktor di Kendal, khususnya yang beroperasi di kawasan industri.',
+    svcs: [
+      { t: 'Website pabrik kawasan industri', d: 'Profil pabrik, produk, sertifikasi, dan kontak resmi untuk calon buyer dan mitra.' },
+      { t: 'Company profile bahasa Inggris', d: 'Versi Inggris untuk perusahaan yang melayani pembeli dan investor internasional.' },
+      { t: 'Manajemen gudang & logistik', d: 'Barang masuk-keluar, lokasi rak, dan pengiriman tercatat secara real time.' },
+      { t: 'Sistem inventaris pabrik', d: 'Stok bahan baku dan barang jadi dengan peringatan stok minimum.' },
+      { t: 'Portal rekrutmen', d: 'Lowongan, formulir lamaran, dan seleksi pelamar dalam satu portal.' },
+      { t: 'Aplikasi custom Kendal', d: 'Aplikasi web dan android sesuai proses internal perusahaan Anda.' },
+    ],
+    faq: [
+      { q: 'Apakah website pabrik bisa dibuat dua bahasa?', a: 'Bisa. Kami menyiapkan versi Indonesia dan Inggris dengan judul dan deskripsi masing-masing agar mudah ditemukan di pencarian.' },
+      { q: 'Apakah portal rekrutmen bisa menerima lamaran langsung?', a: 'Bisa. Pelamar mengisi formulir dan mengunggah berkas, lalu tim HR melihat dan menyaring dari dashboard admin.' },
+      faqProses('Kendal'),
+    ],
+    kw: ['jasa pembuatan website kendal', 'jasa pembuatan aplikasi kendal', 'jasa bikin web kendal', 'web developer kendal', 'software house kendal', 'jasa website pabrik kawasan industri kendal', 'jasa website company profile bahasa inggris kendal', 'aplikasi manajemen gudang dan logistik kendal', 'sistem inventaris pabrik kendal', 'jasa pembuatan portal rekrutmen kendal'],
+  },
+  {
+    slug: 'pembuatan-website-pemalang', name: 'Pemalang',
+    title: 'Jasa Pembuatan Website & Aplikasi Pemalang | RUtusdev',
+    desc: 'Jasa website dan aplikasi di Pemalang: web konveksi Comal, website klinik dengan reservasi pasien, toko online UMKM, aplikasi kasir dan distribusi agen.',
+    h1: 'Jasa Pembuatan Website & Aplikasi di Pemalang',
+    lead: 'Web developer untuk UMKM, konveksi, klinik, dan distributor di Pemalang yang ingin tampil profesional di internet dan merapikan operasional.',
+    svcs: [
+      { t: 'Website konveksi Comal', d: 'Katalog produk, jumlah minimal order, dan tombol pesan untuk pembeli partai.' },
+      { t: 'Website klinik & reservasi pasien', d: 'Jadwal dokter, pendaftaran online, dan pengingat kunjungan pasien.' },
+      { t: 'Toko online UMKM', d: 'Etalase produk dan pesanan yang bisa dikelola sendiri tanpa keahlian teknis.' },
+      { t: 'Aplikasi kasir & distribusi agen', d: 'Penjualan, stok, dan pengiriman ke agen tercatat rapi.' },
+      { t: 'Web company profile', d: 'Halaman profil usaha yang cepat dibuka di ponsel.' },
+      { t: 'Aplikasi custom Pemalang', d: 'Sistem sesuai kebutuhan, dari pencatatan sampai laporan.' },
+    ],
+    faq: [
+      { q: 'Apakah pasien bisa mendaftar online lewat website klinik?', a: 'Bisa. Pasien memilih dokter dan jadwal, lalu data masuk ke dashboard admin klinik.' },
+      { q: 'Apakah UMKM bisa mengelola toko online sendiri?', a: 'Bisa. Produk, harga, dan stok diubah lewat dashboard sederhana; kami juga mendampingi di awal.' },
+      faqProses('Pemalang'),
+    ],
+    kw: ['jasa pembuatan website pemalang', 'jasa pembuatan aplikasi pemalang', 'jasa website pemalang', 'web developer pemalang', 'jasa buat web konveksi comal pemalang', 'jasa website klinik dan reservasi pasien pemalang', 'jasa toko online UMKM pemalang', 'aplikasi kasir dan distribusi agen pemalang', 'jasa bikin web company profile pemalang'],
+  },
+  {
+    slug: 'pembuatan-website-wonosobo', name: 'Wonosobo',
+    title: 'Jasa Pembuatan Website Wonosobo & Dieng | RUtusdev',
+    desc: 'Jasa pembuatan website di Wonosobo dan Dieng: booking homestay, web villa & penginapan, paket wisata, toko online oleh-oleh, dan sistem reservasi wisata.',
+    h1: 'Jasa Pembuatan Website & Aplikasi di Wonosobo',
+    lead: 'Web developer untuk pelaku wisata, homestay, villa, dan UMKM oleh-oleh di Wonosobo dan Dieng yang ingin dipesan langsung oleh wisatawan.',
+    svcs: [
+      { t: 'Website booking homestay Dieng', d: 'Cek ketersediaan kamar, harga, dan pemesanan langsung tanpa komisi platform.' },
+      { t: 'Web villa & penginapan', d: 'Galeri foto, fasilitas, lokasi, dan tombol pesan yang jelas di ponsel.' },
+      { t: 'Website paket wisata Dieng', d: 'Itinerari, harga paket, dan formulir pemesanan untuk tur dan open trip.' },
+      { t: 'Toko online oleh-oleh Wonosobo', d: 'Jual carica, teh, dan produk lokal ke seluruh Indonesia.' },
+      { t: 'Sistem reservasi wisata Dieng', d: 'Jadwal, kuota, dan pembayaran tercatat otomatis.' },
+      { t: 'Aplikasi custom Wonosobo', d: 'Aplikasi pencatatan dan laporan sesuai usaha Anda.' },
+    ],
+    faq: [
+      { q: 'Apakah website homestay bisa menerima booking langsung?', a: 'Bisa. Tamu memilih tanggal dan kamar, lalu pesanan masuk ke dashboard dan WhatsApp Anda.' },
+      { q: 'Apakah halaman bisa dibuat agar mudah ditemukan wisatawan di Google?', a: 'Ya. Struktur halaman, judul, deskripsi, data terstruktur, dan kecepatan dioptimalkan untuk pencarian seperti "homestay Dieng".' },
+      faqProses('Wonosobo'),
+    ],
+    kw: ['jasa pembuatan website wonosobo', 'jasa pembuatan aplikasi wonosobo', 'jasa bikin web wonosobo', 'web developer wonosobo', 'jasa website booking homestay dieng', 'jasa pembuatan web villa dan penginapan wonosobo', 'jasa website paket wisata dieng wonosobo', 'jasa toko online oleh-oleh wonosobo', 'sistem reservasi wisata dieng'],
+  },
+  {
+    slug: 'pembuatan-website-banjarnegara', name: 'Banjarnegara',
+    title: 'Jasa Pembuatan Website & Aplikasi Banjarnegara | RUtusdev',
+    desc: 'Jasa pembuatan website di Banjarnegara: penginapan Dieng, web sekolah & PPDB online, website desa dan instansi, serta aplikasi sistem informasi custom.',
+    h1: 'Jasa Pembuatan Website & Aplikasi di Banjarnegara',
+    lead: 'Web developer untuk penginapan, sekolah, desa, dan instansi di Banjarnegara yang membutuhkan website resmi dan sistem informasi yang mudah dipakai.',
+    svcs: [
+      { t: 'Website penginapan Dieng Banjarnegara', d: 'Informasi kamar, lokasi, dan pemesanan langsung bagi tamu yang mencari penginapan di Dieng.' },
+      { t: 'Web sekolah & PPDB', d: 'Profil sekolah, berita, dan pendaftaran peserta didik baru secara online.' },
+      { t: 'Website desa & instansi', d: 'Profil, layanan, berita, dan transparansi informasi untuk masyarakat.' },
+      { t: 'Sistem informasi custom', d: 'Pendataan, laporan, dan alur kerja yang disesuaikan dengan kebutuhan lembaga.' },
+      { t: 'Aplikasi android', d: 'Aplikasi mobile untuk layanan pelanggan, anggota, atau petugas lapangan.' },
+      { t: 'Website UMKM & company profile', d: 'Etalase usaha lokal yang tampil rapi dan mudah dihubungi.' },
+    ],
+    faq: [
+      { q: 'Apakah PPDB online bisa disesuaikan dengan jalur pendaftaran sekolah?', a: 'Bisa. Jalur, kuota, persyaratan berkas, dan pengumuman diatur sesuai ketentuan sekolah Anda.' },
+      { q: 'Apakah website desa bisa dikelola perangkat desa sendiri?', a: 'Bisa. Berita, pengumuman, dan data diubah lewat dashboard sederhana tanpa keahlian pemrograman.' },
+      faqProses('Banjarnegara'),
+    ],
+    kw: ['jasa pembuatan website banjarnegara', 'jasa pembuatan aplikasi banjarnegara', 'jasa website banjarnegara', 'web developer banjarnegara', 'jasa website penginapan dieng banjarnegara', 'jasa pembuatan web sekolah dan PPDB banjarnegara', 'jasa website desa dan instansi banjarnegara', 'aplikasi sistem informasi custom banjarnegara'],
+  },
+];
+
+export const OFFERS: Offer[] = [
+  {
+    slug: 'harga-jasa-pembuatan-website-company-profile',
+    title: 'Harga Jasa Pembuatan Website Company Profile | RUtusdev',
+    desc: 'Harga jasa pembuatan website company profile ditentukan oleh jumlah halaman, desain, dan fitur. Pahami faktor biayanya lalu minta penawaran tertulis.',
+    h1: 'Harga Jasa Pembuatan Website Company Profile',
+    lead: 'Biaya website company profile bergantung pada ruang lingkupnya. Kami memberi penawaran tertulis yang jelas rinciannya setelah diskusi singkat kebutuhan Anda.',
+    ptitle: 'Faktor yang menentukan biaya',
+    points: [
+      { t: 'Jumlah halaman & struktur', d: 'Profil, layanan, portofolio, artikel, dan kontak.' },
+      { t: 'Desain', d: 'Desain khusus sesuai identitas merek atau kerangka siap pakai.' },
+      { t: 'CMS', d: 'Kelola teks, gambar, dan artikel sendiri tanpa programmer.' },
+      { t: 'Bahasa', d: 'Satu bahasa atau dua bahasa (Indonesia dan Inggris).' },
+      { t: 'SEO & performa', d: 'Struktur, kecepatan, dan data terstruktur agar mudah ditemukan.' },
+      { t: 'Domain, hosting & keamanan', d: 'Nama domain, SSL, dan perlindungan formulir dari spam.' },
+    ],
+    faq: [
+      { q: 'Apakah ada paket yang bisa dipilih?', a: 'Ada tiga paket indikatif: Mulai (landing page), Studio (website dengan CMS), dan Custom (aplikasi web). Harga final ditentukan setelah diskusi kebutuhan.' },
+      { q: 'Apakah website sudah termasuk SEO dasar?', a: 'Ya. Judul, deskripsi, sitemap, data terstruktur, dan kecepatan halaman disiapkan sejak awal.' },
+    ],
+    kw: ['harga jasa pembuatan website company profile', 'biaya pembuatan website company profile', 'jasa pembuatan web company profile jateng'],
+  },
+  {
+    slug: 'biaya-pembuatan-aplikasi-android-web-custom',
+    title: 'Biaya Pembuatan Aplikasi Android & Web Custom | RUtusdev',
+    desc: 'Biaya pembuatan aplikasi android dan web custom bergantung pada fitur, integrasi, dan jumlah pengguna. Dapatkan estimasi tertulis dari RUtusdev.',
+    h1: 'Biaya Pembuatan Aplikasi Android & Web Custom',
+    lead: 'Setiap aplikasi custom unik, sehingga biayanya dihitung dari fitur dan alur kerja yang Anda butuhkan, bukan paket yang dipaksakan.',
+    ptitle: 'Yang memengaruhi estimasi biaya',
+    points: [
+      { t: 'Fitur & alur kerja', d: 'Semakin banyak peran pengguna dan proses, semakin besar ruang lingkupnya.' },
+      { t: 'Platform', d: 'Aplikasi web, android, atau keduanya dengan data yang sama.' },
+      { t: 'Integrasi', d: 'Pembayaran, WhatsApp, email, atau sistem lain yang sudah Anda pakai.' },
+      { t: 'Laporan & dashboard', d: 'Ringkasan data untuk pengambilan keputusan.' },
+      { t: 'Keamanan & hak akses', d: 'Pembatasan akses per peran dan pencadangan data.' },
+    ],
+    faq: [
+      { q: 'Bagaimana cara mendapatkan estimasi biaya?', a: `Ceritakan kebutuhan lewat formulir di halaman utama. ${reply} Kami menyusun penawaran tertulis berisi ruang lingkup dan tahapan pengerjaan.` },
+      { q: 'Bisakah dikerjakan bertahap?', a: 'Bisa. Fitur inti dirilis lebih dulu, lalu dikembangkan sesuai anggaran dan prioritas bisnis.' },
+    ],
+    kw: ['biaya pembuatan aplikasi android dan web custom', 'jasa pembuatan aplikasi android jawa tengah'],
+  },
+  {
+    slug: 'jasa-pembuatan-website-terima-beres-seo',
+    title: 'Jasa Pembuatan Website Terima Beres & SEO | RUtusdev',
+    desc: 'Jasa pembuatan website terima beres dan SEO: dari konsultasi, desain, pengembangan, sampai peluncuran siap ditemukan di Google. Cocok untuk bisnis di Jateng.',
+    h1: 'Jasa Pembuatan Website Terima Beres dan SEO',
+    lead: 'Anda cukup menceritakan bisnis Anda. Kami mengurus desain, pengembangan, optimasi SEO, keamanan, dan peluncuran sampai website siap dipakai.',
+    ptitle: 'Yang kami kerjakan',
+    points: [
+      { t: 'Konsultasi & struktur halaman', d: 'Menentukan tujuan, layanan utama, dan kata kunci yang dicari calon pelanggan.' },
+      { t: 'Desain responsif', d: 'Tampil rapi di ponsel, tablet, dan komputer.' },
+      { t: 'SEO teknis', d: 'Judul, deskripsi, sitemap, robots, data terstruktur, dan kecepatan.' },
+      { t: 'Keamanan', d: 'HTTPS, perlindungan formulir, dan pembatasan akses admin.' },
+      { t: 'Peluncuran & cadangan data', d: 'Uji kualitas, rilis, dan pencadangan terjadwal.' },
+    ],
+    faq: [
+      { q: 'Apakah saya perlu menyiapkan konten?', a: 'Cukup bahan dasar seperti logo, foto, dan deskripsi usaha. Kami bantu menata dan menyusunnya menjadi struktur halaman yang efektif.' },
+      { q: 'Berapa lama sampai website muncul di Google?', a: 'Pengindeksan bergantung pada mesin pencari dan tidak bisa dijanjikan. Kami menyiapkan fondasi teknis dan mengirim sitemap agar prosesnya lebih cepat.' },
+    ],
+    kw: ['jasa pembuatan website terima beres dan SEO', 'jasa bikin website perusahaan jateng'],
+  },
+  {
+    slug: 'aplikasi-kasir-stok-gudang-umkm',
+    title: 'Jasa Aplikasi Kasir & Stok Gudang UMKM | RUtusdev',
+    desc: 'Jasa bikin aplikasi kasir dan stok gudang untuk UMKM: catat penjualan, pantau stok, dan lihat laporan harian dari satu aplikasi yang mudah dipakai.',
+    h1: 'Jasa Bikin Aplikasi Kasir dan Stok Gudang UMKM',
+    lead: 'Berhenti mencatat manual. Aplikasi kasir dan stok membuat penjualan, persediaan, dan laporan usaha Anda tercatat otomatis.',
+    ptitle: 'Fitur utama',
+    points: [
+      { t: 'Kasir cepat', d: 'Transaksi, diskon, dan struk dalam hitungan detik.' },
+      { t: 'Stok gudang', d: 'Barang masuk, keluar, dan stok minimum dengan peringatan.' },
+      { t: 'Laporan', d: 'Penjualan harian, produk terlaris, dan ringkasan keuntungan.' },
+      { t: 'Multi pengguna', d: 'Hak akses berbeda untuk pemilik, kasir, dan petugas gudang.' },
+      { t: 'Disesuaikan', d: 'Fitur mengikuti jenis usaha: toko, konveksi, distributor, atau kuliner.' },
+    ],
+    faq: [
+      { q: 'Apakah bisa dipakai di ponsel?', a: 'Bisa. Aplikasi web berjalan di ponsel dan komputer, dan aplikasi android dapat dibuat bila dibutuhkan.' },
+      { q: 'Apakah data stok dan kasir otomatis sinkron?', a: 'Ya. Setiap penjualan langsung mengurangi stok sehingga data selalu terbaru.' },
+    ],
+    kw: ['jasa bikin aplikasi kasir dan stok gudang UMKM', 'aplikasi kasir POS pekalongan'],
+  },
+  {
+    slug: 'jasa-pembuatan-sistem-informasi-jawa-tengah',
+    title: 'Jasa Pembuatan Sistem Informasi, HRIS & ERP Jawa Tengah',
+    desc: 'Jasa pembuatan sistem informasi custom di Jawa Tengah: HRIS, absensi, ERP manufaktur, inventaris, dan dashboard laporan untuk perusahaan dan instansi.',
+    h1: 'Jasa Pembuatan Sistem Informasi di Jawa Tengah',
+    lead: 'Sistem informasi custom yang mengikuti proses kerja perusahaan atau instansi Anda, lengkap dengan hak akses dan laporan.',
+    ptitle: 'Jenis sistem yang kami bangun',
+    points: [
+      { t: 'HRIS & absensi', d: 'Karyawan, kehadiran, cuti, dan penggajian dasar.' },
+      { t: 'ERP & manufaktur', d: 'Produksi, stok bahan, pembelian, dan penjualan terhubung.' },
+      { t: 'Inventaris & gudang', d: 'Pencatatan barang, lokasi, dan mutasi stok.' },
+      { t: 'Sistem pelayanan instansi', d: 'Pendataan, permohonan, dan laporan layanan publik.' },
+      { t: 'Dashboard laporan', d: 'Ringkasan data real time untuk pimpinan.' },
+    ],
+    faq: [
+      { q: 'Apakah sistem bisa diintegrasikan dengan data yang sudah ada?', a: 'Bisa. Data dari spreadsheet atau sistem lama dapat dimigrasikan setelah dianalisis bersama.' },
+      faqDurasi,
+    ],
+    kw: ['jasa pembuatan sistem informasi jawa tengah', 'aplikasi sistem informasi custom banjarnegara', 'sistem ERP manufaktur batang'],
+  },
+  {
+    slug: 'jasa-toko-online-jawa-tengah',
+    title: 'Jasa Buat Toko Online Jawa Tengah | RUtusdev',
+    desc: 'Jasa buat toko online di Jawa Tengah: katalog produk, keranjang, pesanan, dan dashboard yang mudah dikelola. Cocok untuk UMKM batik, oleh-oleh, dan konveksi.',
+    h1: 'Jasa Buat Toko Online di Jawa Tengah',
+    lead: 'Toko online milik sendiri, tanpa bergantung pada komisi marketplace. Produk, harga, dan pesanan Anda kelola dari satu dashboard.',
+    ptitle: 'Yang Anda dapatkan',
+    points: [
+      { t: 'Katalog & varian', d: 'Foto, harga, ukuran, warna, dan stok per produk.' },
+      { t: 'Pesanan', d: 'Pesanan masuk ke dashboard dan dapat diteruskan ke WhatsApp.' },
+      { t: 'Tampilan ponsel', d: 'Cepat dibuka dan nyaman dipakai belanja.' },
+      { t: 'SEO produk', d: 'Judul dan deskripsi tiap produk dioptimalkan untuk pencarian.' },
+      { t: 'Dikelola sendiri', d: 'Ubah produk dan harga tanpa keahlian teknis.' },
+    ],
+    faq: [
+      { q: 'Apakah cocok untuk batik, oleh-oleh, atau konveksi?', a: 'Cocok. Contohnya toko batik Pekalongan, oleh-oleh khas Wonosobo, dan produk konveksi Pemalang.' },
+      { q: 'Apakah bisa terhubung ke pembayaran online?', a: 'Bisa disesuaikan dengan metode pembayaran yang Anda pakai; bahasan teknisnya dilakukan saat diskusi kebutuhan.' },
+    ],
+    kw: ['jasa buat toko online jawa tengah', 'jasa buat toko online batik pekalongan', 'jasa toko online oleh-oleh wonosobo', 'jasa toko online UMKM pemalang'],
+  },
+  {
+    slug: 'vendor-it-software-house-jawa-tengah',
+    title: 'Vendor IT & Software House Jawa Tengah Terpercaya',
+    desc: 'Vendor pembuatan aplikasi perusahaan di Jawa Tengah: proses transparan, penawaran tertulis, konsultasi online atau tatap muka, dukungan setelah rilis.',
+    h1: 'Vendor IT & Software House Terpercaya di Jawa Tengah',
+    lead: 'Mitra pengembangan website dan aplikasi untuk perusahaan dan instansi: proses jelas, komunikasi rutin, dan dukungan setelah peluncuran.',
+    ptitle: 'Cara kami bekerja sebagai vendor',
+    points: [
+      { t: 'Penawaran tertulis', d: 'Ruang lingkup, tahapan, dan biaya dituangkan sebelum pengerjaan.' },
+      { t: 'Proses terbuka', d: 'Anda melihat kemajuan di setiap tahap, dari desain sampai rilis.' },
+      { t: 'Standar terbuka', d: 'Teknologi modern yang mudah dirawat oleh tim mana pun.' },
+      { t: 'Konsultasi fleksibel', d: 'Online atau tatap muka sesuai kesepakatan jadwal.' },
+      { t: 'Dukungan setelah rilis', d: 'Perawatan, perbaikan, dan pengembangan lanjutan.' },
+    ],
+    faq: [
+      { q: 'Apakah bisa bertemu langsung?', a: 'Pertemuan tatap muka dapat dijadwalkan sesuai kesepakatan. Hubungi kami lewat formulir untuk mengatur waktu dan tempat.' },
+      { q: 'Apakah tersedia dokumen penawaran resmi?', a: 'Ya. Penawaran dan invoice diterbitkan secara tertulis dengan rincian item.' },
+    ],
+    kw: ['vendor IT jawa tengah', 'vendor pembuatan aplikasi perusahaan terpercaya', 'jasa pembuatan website terdekat bisa ketemu langsung', 'software house jawa tengah'],
+  },
+  {
+    slug: 'jasa-website-murah-profesional-jateng',
+    title: 'Jasa Pembuatan Website Murah & Profesional Jateng',
+    desc: 'Jasa pembuatan website murah dan profesional di Jateng: mulai dari landing page, disesuaikan anggaran, tetap cepat, aman, dan siap SEO.',
+    h1: 'Jasa Pembuatan Website Murah dan Profesional di Jateng',
+    lead: 'Anggaran terbatas bukan alasan tampil asal-asalan. Mulai dari landing page, lalu kembangkan bertahap sesuai pertumbuhan bisnis.',
+    ptitle: 'Cara menghemat tanpa mengorbankan kualitas',
+    points: [
+      { t: 'Mulai dari yang inti', d: 'Satu halaman fokus dengan formulir konsultasi dan SEO dasar.' },
+      { t: 'Kembangkan bertahap', d: 'Tambah halaman, CMS, atau toko online saat dibutuhkan.' },
+      { t: 'Tanpa fitur berlebih', d: 'Anda hanya membayar fitur yang benar-benar dipakai.' },
+      { t: 'Tetap aman & cepat', d: 'HTTPS, perlindungan formulir, dan performa baik di ponsel.' },
+    ],
+    faq: [
+      { q: 'Paket apa yang cocok untuk anggaran terbatas?', a: 'Paket Mulai (landing page) cocok untuk memvalidasi ide dengan cepat. Anda bisa naik ke Studio atau Custom kapan saja.' },
+      { q: 'Apakah murah berarti kualitas rendah?', a: 'Tidak. Kami memangkas fitur yang belum perlu, bukan kualitas dasar seperti keamanan, kecepatan, dan SEO.' },
+    ],
+    kw: ['jasa pembuatan website murah dan profesional jateng'],
+  },
+  {
+    slug: 'jasa-redesign-website-perusahaan',
+    title: 'Jasa Redesign Website Perusahaan | RUtusdev',
+    desc: 'Jasa redesign website perusahaan: segarkan tampilan, perbaiki kecepatan, dan rapikan struktur SEO tanpa kehilangan peringkat yang sudah ada.',
+    h1: 'Jasa Redesign Website Perusahaan',
+    lead: 'Website lama terasa lambat, kaku, atau tidak nyaman di ponsel? Kami merancang ulang tampilannya sambil menjaga konten dan peringkat pencarian yang sudah ada.',
+    ptitle: 'Yang kami perbaiki',
+    points: [
+      { t: 'Tampilan & identitas', d: 'Desain modern yang konsisten dengan citra perusahaan.' },
+      { t: 'Kecepatan', d: 'Waktu muat lebih singkat, terutama di ponsel.' },
+      { t: 'Struktur SEO', d: 'Judul, heading, dan tautan internal dirapikan.' },
+      { t: 'Pengalihan alamat lama', d: 'URL lama diarahkan ke yang baru agar peringkat tidak hilang.' },
+      { t: 'Kemudahan kelola', d: 'CMS agar konten bisa diperbarui sendiri.' },
+    ],
+    faq: [
+      { q: 'Apakah peringkat Google saya akan turun setelah redesign?', a: 'Risikonya kami minimalkan dengan memetakan URL lama, membuat pengalihan, dan memeriksa metadata sebelum rilis.' },
+      { q: 'Bisakah konten lama dipertahankan?', a: 'Bisa. Teks dan gambar yang masih relevan dipindahkan ke desain baru.' },
+    ],
+    kw: ['jasa redesign website perusahaan'],
+  },
+  {
+    slug: 'jasa-maintenance-website-aplikasi-bisnis',
+    title: 'Jasa Maintenance Website & Aplikasi Bisnis | RUtusdev',
+    desc: 'Jasa maintenance website dan aplikasi bisnis: perbaikan bug, pembaruan keamanan, cadangan data, dan pengembangan fitur agar sistem Anda tetap andal.',
+    h1: 'Jasa Maintenance Website dan Aplikasi Bisnis',
+    lead: 'Website dan aplikasi perlu dirawat agar tetap aman, cepat, dan berjalan lancar. Serahkan perawatannya kepada tim yang memahami sistemnya.',
+    ptitle: 'Cakupan perawatan',
+    points: [
+      { t: 'Perbaikan bug', d: 'Masalah yang muncul ditangani dan diuji sebelum dirilis.' },
+      { t: 'Pembaruan keamanan', d: 'Pustaka dan konfigurasi dijaga tetap mutakhir.' },
+      { t: 'Cadangan data', d: 'Pencadangan terjadwal dan prosedur pemulihan.' },
+      { t: 'Pemantauan', d: 'Memastikan situs dan aplikasi tetap dapat diakses.' },
+      { t: 'Pengembangan lanjutan', d: 'Fitur baru sesuai pertumbuhan bisnis.' },
+    ],
+    faq: [
+      { q: 'Apakah bisa merawat website yang bukan dibuat oleh RUtusdev?', a: 'Bisa, setelah kami memeriksa kondisi kode dan infrastrukturnya terlebih dahulu.' },
+      { q: 'Bagaimana jika terjadi gangguan?', a: `Laporkan lewat formulir atau kontak yang tersedia. ${reply}` },
+    ],
+    kw: ['jasa maintenance website dan aplikasi bisnis'],
+  },
+];

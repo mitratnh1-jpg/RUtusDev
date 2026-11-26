@@ -13,5 +13,5 @@ export default defineConfig({
     output: { entryFileNames: chunk => (chunk.name === 'embed' ? 'chat-embed.js' : 'assets/[name]-[hash].js') },
   } },
   // ../shared dipakai bersama Worker (fakta situs + FAQ chatbot); dev server harus boleh membacanya.
-  server: { fs: { allow: ['..'] }, proxy: { '/api': api, '/media': api, '/articles': api, '/work': api, '/services': api, '/sitemap.xml': api, '/admin/config.js': api } },
+  server: { fs: { allow: ['..'] }, proxy: { '/api': api, '/media': api, '/articles': api, '/work': api, '/services': api, '/jasa': api, '/sitemap.xml': api, '/admin/config.js': api } },
 });
