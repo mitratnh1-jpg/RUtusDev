@@ -21,10 +21,13 @@ const CSP = [
 // Respons JSON/API tidak pernah perlu memuat sumber daya apa pun.
 const API_CSP = "default-src 'none'; frame-ancestors 'none'; base-uri 'none'; form-action 'none'";
 
-const PERMISSIONS = [
+// Mikrofon hanya dibuka untuk halaman publik (fitur suara chatbot) dan hanya untuk origin sendiri; API dan panel admin tetap menutupnya.
+const PERMISSION_BASE = [
   'accelerometer=()', 'autoplay=()', 'bluetooth=()', 'camera=()', 'display-capture=()', 'geolocation=()', 'gyroscope=()',
-  'magnetometer=()', 'microphone=()', 'midi=()', 'payment=()', 'publickey-credentials-get=()', 'serial=()', 'usb=()', 'xr-spatial-tracking=()',
-].join(', ');
+  'magnetometer=()', 'midi=()', 'payment=()', 'publickey-credentials-get=()', 'serial=()', 'usb=()', 'xr-spatial-tracking=()',
+];
+const PERMISSIONS_PUBLIC = [...PERMISSION_BASE, 'microphone=(self)'].join(', ');
+const PERMISSIONS_LOCKED = [...PERMISSION_BASE, 'microphone=()'].join(', ');
 
 // reportOnly = true: CSP hanya dilaporkan di konsol browser (tidak memblokir). Dipakai untuk uji pertama setelah deploy.
 export function secure(r: Response, reportOnly: boolean, pathname = '/'): Response {
@@ -38,7 +41,7 @@ export function secure(r: Response, reportOnly: boolean, pathname = '/'): Respon
   h.set('X-Content-Type-Options', 'nosniff');
   h.set('X-Frame-Options', 'DENY');
   h.set('Referrer-Policy', isApi || isAdmin ? 'no-referrer' : 'strict-origin-when-cross-origin');
-  h.set('Permissions-Policy', PERMISSIONS);
+  h.set('Permissions-Policy', isApi || isAdmin ? PERMISSIONS_LOCKED : PERMISSIONS_PUBLIC);
   h.set('Cross-Origin-Opener-Policy', 'same-origin');
   h.set('X-Permitted-Cross-Domain-Policies', 'none');
   h.set('X-DNS-Prefetch-Control', 'off');
