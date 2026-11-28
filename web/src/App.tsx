@@ -456,6 +456,15 @@ export default function App() {
           <p>Rancang. Bangun. Luncurkan. · © {new Date().getFullYear()} RUtusdev</p>
           {/* Satu tautan ke hub /jasa: halaman itu menautkan semua wilayah & layanan (SEO), landing tetap bersih */}
           <nav className="foot-links" aria-label="Layanan"><a href="/jasa">Semua layanan &amp; wilayah</a></nav>
+          <div className="credit" aria-label="Developed by @hndx07">
+            <span className="credit-pill">
+              <span className="credit-dim">Developed by</span>
+              <svg className="credit-ico" viewBox="0 0 24 24" aria-hidden="true">
+                <polyline points="8 6 2 12 8 18" /><polyline points="16 6 22 12 16 18" /><line x1="14" y1="4" x2="10" y2="20" />
+              </svg>
+              <span className="credit-handle">@hndx07</span>
+            </span>
+          </div>
         </div>
       </footer>
       <ChatLoader wa={wa} email={email} services={svc} />
