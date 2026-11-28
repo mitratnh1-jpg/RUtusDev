@@ -2,6 +2,7 @@
 import type { Env } from './index';
 import { PROJECT_COLS, PROJECT_EMBED, shapeProject } from './projects';
 import { seoPage, SEO_PATHS, SEO_LASTMOD } from './seoPages';
+import { katalogPage, KATALOG_PATHS } from './katalogPages';
 
 const MEDIA_KEY = /^uploads\/[0-9a-f-]{36}\.(png|jpg|webp|gif)$/;
 const SLUG = /^[a-z0-9-]{1,100}$/;
@@ -46,7 +47,7 @@ async function get<T = any[]>(env: Env, path: string): Promise<T> {
 let BEACON = ''; // token Cloudflare Web Analytics (diisi dari env tiap request; konstan per deployment)
 const beacon = () => (/^[a-f0-9]{32}$/i.test(BEACON) ? `<script defer src="https://static.cloudflareinsights.com/beacon.min.js" data-cf-beacon='{"token":"${BEACON}"}'></script>` : '');
 
-type Page = { title: string; desc: string; path: string; og?: string; type?: string; body: string; ld?: unknown; status?: number; kw?: string[] };
+type Page = { title: string; desc: string; path: string; og?: string; type?: string; body: string; ld?: unknown; status?: number; kw?: string[]; wide?: boolean };
 const MARK = '<svg class="mark" viewBox="0 0 24 24" aria-hidden="true"><rect class="m-top" x="9" y="5" width="6" height="6" rx="1.5"/><rect x="2" y="13" width="6" height="6" rx="1.5"/><rect x="9" y="13" width="6" height="6" rx="1.5"/><rect x="16" y="13" width="6" height="6" rx="1.5"/></svg>';
 // Ikon, manifest, dan warna tema: sama dengan index.html (sumber: logo RUtusdev). Berkas ada di web/public.
 const ICONS = `<link rel="icon" href="/favicon.ico" sizes="48x48"><link rel="icon" href="/favicon.svg" type="image/svg+xml"><link rel="icon" type="image/png" sizes="32x32" href="/favicon-32x32.png"><link rel="icon" type="image/png" sizes="16x16" href="/favicon-16x16.png">
@@ -64,9 +65,9 @@ ${ICONS}
 <link rel="preconnect" href="https://fonts.googleapis.com"><link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@300;400;500;600;700&family=Inter:wght@400;500;600&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
 <link rel="stylesheet" href="/styles.css">${p.ld ? (Array.isArray(p.ld) ? p.ld.map(ld).join('') : ld(p.ld)) : ''}</head><body>
-<header class="nav"><a class="logo" href="/">${MARK}RUtusdev</a><nav class="nav-links"><a href="/#services">Layanan</a><a href="/jasa">Jasa</a><a href="/#work">Karya</a><a href="/articles">Artikel</a><a href="/#contact">Kontak</a></nav><div class="nav-actions"><a class="btn btn-ghost" href="/articles">Artikel</a><a class="btn btn-blue" href="/#contact">Hubungi kami</a></div></header>
-<main class="doc" data-nav="light"><div class="wrap">${p.body}</div></main>
-<footer class="foot dark" data-nav="dark"><div class="wrap"><a class="logo" href="/">${MARK}RUtusdev</a><p>Rancang. Bangun. Luncurkan.</p><nav class="foot-links" aria-label="Layanan"><a href="/jasa">Semua layanan &amp; wilayah</a></nav></div></footer>${p.status === 404 ? '' : '<script type="module" src="/chat-embed.js"></script>'}${beacon()}</body></html>`;
+<header class="nav"><a class="logo" href="/">${MARK}RUtusdev</a><nav class="nav-links"><a href="/layanan">Layanan</a><a href="/jasa">Jasa</a><a href="/#work">Karya</a><a href="/articles">Artikel</a><a href="/#contact">Kontak</a></nav><div class="nav-actions"><a class="btn btn-ghost" href="/articles">Artikel</a><a class="btn btn-blue" href="/#contact">Hubungi kami</a></div></header>
+<main class="doc${p.wide ? ' wide' : ''}" data-nav="light"><div class="wrap">${p.body}</div></main>
+<footer class="foot dark" data-nav="dark"><div class="wrap"><a class="logo" href="/">${MARK}RUtusdev</a><p>Rancang. Bangun. Luncurkan.</p><nav class="foot-links" aria-label="Layanan"><a href="/layanan">Katalog layanan &amp; harga</a><a href="/jasa">Semua layanan &amp; wilayah</a></nav></div></footer>${p.status === 404 ? '' : '<script type="module" src="/chat-embed.js"></script>'}${beacon()}</body></html>`;
   return new Response(html, { status: p.status || 200, headers: { 'Content-Type': 'text/html; charset=utf-8',
     'Cache-Control': p.status === 404 ? 'no-store' : 'public, max-age=0, must-revalidate' } });
 }
@@ -89,7 +90,7 @@ export async function pages(req: Request, env: Env, path: string): Promise<Respo
     const u = (loc: string, d?: string, extra = '') => `<url><loc>${esc(origin + loc)}</loc>${d ? `<lastmod>${d.slice(0, 10)}</lastmod>` : ''}${extra}</url>`;
     const xml = `<?xml version="1.0" encoding="UTF-8"?><urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9" xmlns:image="http://www.google.com/schemas/sitemap-image/1.1">` +
       u('/', SEO_LASTMOD, stat('/logo.png', 'Logo RUtusdev') + stat('/og-image.png', 'RUtusdev — Jasa Pembuatan Website & Aplikasi Jawa Tengah')) + u('/articles') +
-      SEO_PATHS.map(x => u(x, SEO_LASTMOD)).join('') +
+      SEO_PATHS.map(x => u(x, SEO_LASTMOD)).join('') + KATALOG_PATHS.map(x => u(x, SEO_LASTMOD)).join('') +
       a.filter((x: any) => SLUG.test(x.slug || '')).map((x: any) => u('/articles/' + x.slug, x.created_at, im(x.cover_key, x.title))).join('') +
       p.filter((x: any) => SLUG.test(x.slug || '')).map((x: any) => u('/work/' + x.slug, x.published_at || x.created_at, im(x.cover_key, x.title))).join('') +
       sv.filter((x: any) => SLUG.test(x.slug || '')).map((x: any) => u('/services/' + x.slug, x.created_at)).join('') + '</urlset>';
@@ -100,6 +101,12 @@ export async function pages(req: Request, env: Env, path: string): Promise<Respo
   if (path === '/jasa' || path.startsWith('/jasa/')) {
     const sp = seoPage(path, origin);
     return sp ? layout(origin, sp) : notFound(origin);
+  }
+
+  // Katalog layanan & halaman anak (data statis, tanpa database).
+  if (path === '/layanan' || path.startsWith('/layanan/')) {
+    const kp = katalogPage(path, origin);
+    return kp ? layout(origin, kp) : notFound(origin);
   }
 
   if (path === '/articles') {

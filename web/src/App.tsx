@@ -3,10 +3,11 @@ import Dots from './Dots';
 import Defer from './Defer';
 import Deck from './Deck';
 import Reveal from './Reveal';
+import Catalog from './Catalog';
 import { onScrollFrame, clamp, reducedMotion } from './scroll';
 import { useContentState } from './useContent';
 import { imgProps } from './media';
-import { PACKAGES, STACK, STEPS } from '../../shared/siteFacts';
+import { PACKAGES, RECURRING, STACK, STEPS } from '../../shared/siteFacts';
 import type { Article, Client, Project, Service, Stats, Testimonial } from './types';
 
 const COVER = /^uploads\/[0-9a-f-]{36}\.(png|jpg|webp|gif)$/;
@@ -123,7 +124,7 @@ const Sk = ({ w = '100%', h = 14, mt = 12 }: { w?: string; h?: number; mt?: numb
 
 function Services({ items, loading }: { items: Service[]; loading?: boolean }) {
   return (
-    <section className="light" id="services" data-nav="light">
+    <section className="light svc" id="services" data-nav="light">
       <div className="wrap">
         <Reveal>
         <p className="pill">Mengapa RUtusdev</p>
@@ -156,6 +157,7 @@ function Services({ items, loading }: { items: Service[]; loading?: boolean }) {
           </>)}
         </div>
       </div>
+      <Catalog />
     </section>
   );
 }
@@ -305,16 +307,17 @@ function Packages() {
   const [pk, setPk] = useState(1);
   const P = PACKAGES[pk];
   return (
-    <section className="dark sub" id="packages" data-nav="dark">
+    <section className="light sub pk" id="packages" data-nav="light">
       <div className="wrap">
-        <p className="pill pill-dark">Paket</p>
+        <p className="pill">Paket</p>
         <h2><b>Pilih paket sesuai kebutuhan.</b><br /><span>Bisa disesuaikan setelah diskusi.</span></h2>
         <div className="seg" role="tablist">
           {PACKAGES.map((x, i) => <button key={x.n} role="tab" aria-selected={i === pk} className={i === pk ? 'on' : ''} onClick={() => setPk(i)}>{x.n}</button>)}
         </div>
-        <div className="pkg"><p className="price">{P.pr}</p><p>{P.d}</p></div>
-        <div className="row"><a className="btn btn-blue" href="#contact">Pilih paket {P.n}</a><a className="btn btn-ghost" href="#contact">Minta penawaran</a></div>
-        <p className="small">Paket bersifat indikatif. Harga ditentukan setelah diskusi kebutuhan.</p>
+        <div className="pkg" key={P.n}><p className="price">{P.pr}</p><p>{P.d}</p></div>
+        <div className="row"><a className="btn btn-blue" href="#contact">Pilih paket {P.n}</a><a className="btn btn-ghost" href={P.href}>Lihat rincian harga</a></div>
+        <p className="chips pk-rec" aria-label="Biaya berulang opsional">{RECURRING.map(r => <span key={r}>{r}</span>)}</p>
+        <p className="small">Estimasi awal dalam Rupiah. Harga final mengikuti analisis kebutuhan, konten, integrasi, dan kompleksitas. <a href="/layanan">Katalog lengkap</a></p>
       </div>
     </section>
   );
@@ -455,7 +458,7 @@ export default function App() {
           <a className="logo" href="#top"><Mark />RUtusdev</a>
           <p>Rancang. Bangun. Luncurkan. · © {new Date().getFullYear()} RUtusdev</p>
           {/* Satu tautan ke hub /jasa: halaman itu menautkan semua wilayah & layanan (SEO), landing tetap bersih */}
-          <nav className="foot-links" aria-label="Layanan"><a href="/jasa">Semua layanan &amp; wilayah</a></nav>
+          <nav className="foot-links" aria-label="Layanan"><a href="/layanan">Katalog layanan &amp; harga</a><a href="/jasa">Semua layanan &amp; wilayah</a></nav>
           <div className="credit" aria-label="Developed by @hndx07">
             <span className="credit-pill">
               <span className="credit-dim">Developed by</span>

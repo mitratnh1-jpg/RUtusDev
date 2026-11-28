@@ -2,8 +2,9 @@
 //  - browser (web/src/Chat.tsx): tombol pertanyaan cepat dijawab LANGSUNG dari sini (tanpa server, tanpa AI, tanpa kuota)
 //    dan jadi cadangan bila server/AI tidak bisa dihubungi;
 //  - Worker (worker/chat.ts): jawaban cadangan bila Workers AI mati, kuota habis, atau error.
-// Jawaban sengaja TIDAK memuat angka harga, durasi, atau janji yang tidak tertulis di situs.
-import { PACKAGES, REPLY_TIME, SECURITY_POINTS, SERVICE_KINDS, STACK, STEPS } from './siteFacts';
+// Jawaban hanya memuat angka harga dari katalog resmi (shared/katalog.ts, estimasi awal) dan tidak menjanjikan durasi atau hal lain yang tidak tertulis di situs.
+import { PACKAGES, RECURRING, REPLY_TIME, SECURITY_POINTS, SERVICE_KINDS, STACK, STEPS } from './siteFacts';
+import { KATALOG, KATALOG_NOTE } from './katalog';
 
 export interface ChatContext { wa: string; email: string; services: string[] }
 // boost: pengali skor. Kata niat (harga, durasi) harus mengalahkan kata topik (website, aplikasi) yang sering ikut muncul di kalimat yang sama.
@@ -25,12 +26,12 @@ export function buildChatFaqs(ctx: ChatContext): ChatFaq[] {
     },
     {
       id: 'paket', q: 'Paket yang tersedia',
-      a: `Ada tiga paket indikatif:\n${PACKAGES.map(p => `• ${p.n} (${p.pr}): ${p.d}`).join('\n')}\n\nPaket bisa disesuaikan setelah diskusi kebutuhan.`,
+      a: `Ada tiga paket indikatif:\n${PACKAGES.map(p => `• ${p.n} (${p.pr}): ${p.d}`).join('\n')}\n\nPaket bisa disesuaikan setelah diskusi kebutuhan. Rincian lengkap ada di halaman /layanan.`,
       keywords: ['paket', 'pilihan', 'mulai studio', 'studio', 'cms', 'perbedaan', 'jenis'],
     },
     {
       id: 'harga', q: 'Berapa biayanya?',
-      a: `Harga ditentukan setelah diskusi kebutuhan; paket di situs bersifat indikatif dan belum memuat angka tetap. Untuk penawaran, kirim ringkasan kebutuhan lewat formulir Kontak${ctx.wa ? ' atau WhatsApp' : ''}.`,
+      a: `Estimasi awal dari katalog:\n${KATALOG.filter(k => k.kind === 'price').map(k => `• ${k.short}: ${k.headline}`).join('\n')}\n\n${KATALOG_NOTE} Rincian per paket ada di halaman /layanan. Untuk penawaran resmi, kirim ringkasan kebutuhan lewat formulir Kontak${ctx.wa ? ' atau WhatsApp' : ''}.`,
       keywords: ['harga', 'biaya', 'tarif', 'bayar', 'pembayaran', 'berapa', 'murah', 'mahal', 'budget', 'anggaran', 'penawaran', 'quotation', 'invoice', 'faktur', ' dp '],
       boost: 1.6,
     },
@@ -57,8 +58,14 @@ export function buildChatFaqs(ctx: ChatContext): ChatFaq[] {
     },
     {
       id: 'keamanan', q: 'Bagaimana soal keamanan?',
-      a: `Praktik keamanan yang diterapkan:\n${SECURITY_POINTS.map(s => `• ${s}`).join('\n')}`,
-      keywords: [' aman ', 'amankah', 'datanya', 'keamanan', 'security', 'rls', 'turnstile', 'captcha', 'spam', 'bot', 'rahasia', 'data saya', 'privasi', 'backup', 'cadangan'],
+      a: `Praktik keamanan yang diterapkan:\n${SECURITY_POINTS.map(s => `• ${s}`).join('\n')}\n\nGaransi perbaikan bug berlaku 30 hari kalender sejak website live. Insiden akibat kesalahan implementasi dari kami ditangani tanpa biaya tambahan. Tidak ada sistem yang bisa dijamin 100% bebas peretasan. Rincian ada di /layanan/keamanan-garansi.`,
+      keywords: ['garansi', 'diretas', 'peretasan', 'hack', ' aman ', 'amankah', 'datanya', 'keamanan', 'security', 'rls', 'turnstile', 'captcha', 'spam', 'bot', 'rahasia', 'data saya', 'privasi', 'backup', 'cadangan'],
+    },
+    {
+      id: 'berulang', q: 'Biaya bulanan & domain',
+      a: `Biaya berulang bersifat opsional:\n${RECURRING.map(r => `• ${r}`).join('\n')}\n\nBiaya pihak ketiga (payment gateway, WhatsApp API, SMS) dibayar sesuai tagihan penyedia.`,
+      keywords: ['bulanan', 'per bulan', 'cloud', 'server', 'maintenance', 'pemeliharaan', 'perawatan', 'domain', 'hosting', 'perpanjang'],
+      boost: 1.3,
     },
     {
       id: 'karya', q: 'Contoh karya',

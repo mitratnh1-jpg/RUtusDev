@@ -8,10 +8,12 @@ export const STEPS: [string, string][] = [
 ];
 export const STACK = ['React', 'Vite', 'TypeScript', 'Cloudflare Workers', 'Supabase', 'R2'];
 export const PACKAGES = [
-  { n: 'Mulai', pr: 'Landing page', d: 'Satu halaman, formulir konsultasi, dan SEO dasar. Cocok untuk memvalidasi ide dengan cepat.' },
-  { n: 'Studio', pr: 'Website + CMS', d: 'Layanan, portofolio, artikel, prospek, dan pustaka media yang bisa Anda kelola sendiri.' },
-  { n: 'Custom', pr: 'Aplikasi web', d: 'CRM, alur penjualan, penawaran, dan faktur yang mengikuti proses kerja Anda.' },
+  { n: 'Mulai', pr: 'Rp300.000 – Rp1.250.000', d: 'Landing page satu halaman, formulir konsultasi, dan SEO dasar. Cocok untuk memvalidasi ide dengan cepat. Company profile dan katalog produk tersedia mulai Rp1.000.000.', href: '/layanan/website-statis' },
+  { n: 'Studio', pr: 'Rp2.000.000 – Rp8.000.000', d: 'Website + CMS: layanan, portofolio, artikel, dan data yang bisa Anda kelola sendiri lewat panel admin, dari login sederhana sampai multi-role dan laporan.', href: '/layanan/website-dinamis' },
+  { n: 'Custom', pr: 'Mulai Rp5.000.000', d: 'Aplikasi web: absensi, inventaris, keuangan, CRM, hingga sistem custom yang mengikuti proses kerja Anda. Toko online mulai Rp3.000.000.', href: '/layanan/aplikasi-web' },
 ];
+// Biaya berulang opsional (dari katalog): cloud/server dan pemeliharaan.
+export const RECURRING = ['Cloud: Rp0 (website ringan) hingga Rp350.000+/bulan', 'Pemeliharaan: Rp75.000 – Rp350.000/bulan', 'Domain dibeli terpisah atas nama Anda'];
 export const SECURITY_POINTS = [
   'Akses data ditolak secara bawaan (RLS)',
   'Turnstile dan honeypot di formulir',
