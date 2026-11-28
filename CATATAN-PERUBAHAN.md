@@ -28,3 +28,11 @@ TAMBAHAN: infografis di artikel panduan cloud hosting (3 gambar)
 - web/public/artikel/*.webp  (baru) 3 gambar x 2 ukuran (836 & 1672 px), dari PNG ~1,9 MB menjadi ~190-235 KB. Salin folder ini ke web/public/artikel/
 - worker/panduanCloud.ts     helper fig() + 3 gambar: ringkasan (atas, sebelum daftar isi), pilihan infrastruktur (bagian Klasifikasi Kapasitas), perbandingan hosting (akhir bagian Cloudflare & Supabase); gambar ditambahkan ke JSON-LD Article
 - web/public/styles.css      gaya .ar-fig (ditambahkan di akhir file)
+
+TAMBAHAN: artikel panduan tampil di daftar artikel + landing; formulir kontak bertema biru
+- shared/panduanMeta.ts (baru)  judul, ringkasan, tanggal, sampul: satu sumber untuk 3 tempat
+- worker/panduanCloud.ts        memakai panduanMeta
+- worker/pages.ts               /articles halaman 1: artikel panduan di paling atas dengan sampul infografis
+- web/src/types.ts, App.tsx     kartu pertama di bagian "Dari artikel" di landing (tautan ke /jasa/...-cloud-hosting)
+- web/src/Contact.tsx           bagian Kontak: dark -> blue (data-nav="blue"), Turnstile tema terang
+- web/public/styles.css         gaya formulir biru (.contact-s) + daftar artikel bersampul (ditambahkan di akhir file)

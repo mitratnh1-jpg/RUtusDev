@@ -8,11 +8,14 @@ import { onScrollFrame, clamp, reducedMotion } from './scroll';
 import { useContentState } from './useContent';
 import { imgProps } from './media';
 import { PACKAGES, RECURRING, STACK, STEPS } from '../../shared/siteFacts';
+import { PANDUAN_PATH, PANDUAN_TITLE, PANDUAN_DATE, PANDUAN_COVER } from '../../shared/panduanMeta';
 import type { Article, Client, Project, Service, Stats, Testimonial } from './types';
 
 const COVER = /^uploads\/[0-9a-f-]{36}\.(png|jpg|webp|gif)$/;
 const SLUG = /^[a-z0-9-]+$/;
 const httpUrl = (u?: string) => (u && /^https?:\/\//.test(u) ? u : '');
+// Artikel panduan statis (bukan dari CMS): selalu jadi kartu pertama di bagian Artikel.
+const PANDUAN_CARD: Article = { title: PANDUAN_TITLE, href: PANDUAN_PATH, created_at: PANDUAN_DATE, cover_src: PANDUAN_COVER };
 const tanggal = (s?: string) => (s ? new Date(s).toLocaleDateString('id-ID', { day: 'numeric', month: 'long', year: 'numeric' }).toUpperCase() : '');
 const inisial = (s: string) => (s.trim()[0] || 'R').toUpperCase();
 
@@ -341,11 +344,12 @@ function Clients({ items }: { items: Client[] }) {
 }
 
 function ArticleCard({ a, i }: { a: Article; i: number }) {
-  const ok = a.slug && SLUG.test(a.slug), href = ok ? `/articles/${a.slug}` : '/articles';
+  const ok = a.slug && SLUG.test(a.slug), href = a.href ? a.href : ok ? `/articles/${a.slug}` : '/articles';
   return (
     <article className="acard">
       <a className={'acover g' + (i % 3)} href={href}>
-        {a.cover_key && COVER.test(a.cover_key) && <img loading="lazy" decoding="async" {...imgProps(a.cover_key, '(max-width: 760px) 100vw, 400px', 640)} alt={a.title} />}
+        {a.cover_src ? <img className="pan" loading="lazy" decoding="async" src={`${a.cover_src}-836.webp`} srcSet={`${a.cover_src}-836.webp 836w, ${a.cover_src}.webp 1672w`} sizes="(max-width: 760px) 100vw, 400px" width={836} height={470} alt={a.title} />
+          : a.cover_key && COVER.test(a.cover_key) && <img loading="lazy" decoding="async" {...imgProps(a.cover_key, '(max-width: 760px) 100vw, 400px', 640)} alt={a.title} />}
         {a.created_at && <span className="date">{tanggal(a.created_at)}</span>}
       </a>
       <div className="atitle"><h3><a href={href}>{a.title}</a></h3><a className="pillbtn light" href={href}>Baca</a></div>
@@ -357,7 +361,7 @@ function ArticleCard({ a, i }: { a: Article; i: number }) {
 function Articles({ items, loading }: { items: Article[]; loading?: boolean }) {
   const tr = useRef<HTMLDivElement>(null);
   const [pos, setPos] = useState(0);
-  const list = items.length ? items : [{ title: 'Artikel pertama segera hadir. Lihat catatan terbaru kami.' }];
+  const list = [PANDUAN_CARD, ...items];
   const go = (d: number) => tr.current?.scrollBy({ left: d * (tr.current.clientWidth * 0.8), behavior: 'smooth' });
   const onScroll = () => { const e = tr.current; if (e) setPos(e.scrollLeft / Math.max(1, e.scrollWidth - e.clientWidth)); };
   return (

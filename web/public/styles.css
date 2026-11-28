@@ -1048,3 +1048,26 @@ button:focus-visible, a:focus-visible {
   .ar-fig-hint{display:block}
 }
 @media (prefers-reduced-motion:reduce){.ar-fig a{transition:none}.ar-fig a:hover{transform:none}}
+
+/* Kontak & formulir: tema biru (sebelumnya hitam). Dibatasi ke .contact-s agar kolom chat dan admin tidak ikut berubah. */
+.contact-s.blue{background:linear-gradient(160deg,#0284C7 0%,#0369A1 55%,#035987 100%)}
+.contact-s .lead{opacity:.85}
+.contact-s .links a,.contact .links a:last-child{color:#fff}
+.contact-s .links a:hover{text-decoration:underline}
+.contact-s label{color:rgba(255,255,255,.88)}
+.contact-s input,.contact-s select,.contact-s textarea{background:rgba(2,62,102,.42);color:#fff;border:1px solid rgba(255,255,255,.3)}
+.contact-s input:hover,.contact-s select:hover,.contact-s textarea:hover{border-color:rgba(255,255,255,.55)}
+.contact-s input:focus,.contact-s select:focus,.contact-s textarea:focus{border-color:#fff;background:rgba(2,62,102,.6);box-shadow:0 0 0 3px rgba(255,255,255,.2)}
+.contact-s select option{background:#035987;color:#fff}
+.contact-s .btn-blue{background:#fff;color:var(--blue);box-shadow:0 6px 18px rgba(2,50,86,.3)}
+.contact-s .btn-blue:hover{background:#e0f2fe}
+.contact-s .btn-blue:disabled{opacity:.6;cursor:not-allowed}
+.contact-s .status{color:#fff}
+.contact-s :focus-visible{outline-color:#fff}
+
+/* Daftar /articles: artikel panduan dengan sampul infografis di sebelah teks (ditumpuk di ponsel). */
+.doc .item-cover{display:grid;grid-template-columns:minmax(0,300px) 1fr;gap:24px;align-items:center}
+.doc .item-cover img{width:100%;height:auto;aspect-ratio:836/470;border-radius:12px;border:1px solid #d6e8f5;object-fit:cover}
+@media (max-width:760px){.doc .item-cover{grid-template-columns:1fr;gap:14px}}
+/* Sampul infografis 16:9 di kartu 1.2:1: geser fokus ke kiri agar judul tidak terpotong. */
+.acover img.pan{object-position:12% 50%}

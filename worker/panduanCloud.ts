@@ -3,13 +3,12 @@
 // Tabel harga diambil dari shared/katalog.ts agar selalu sama dengan halaman /layanan.
 import { KATALOG, price } from '../shared/katalog';
 
-export const PANDUAN_SLUG = 'jasa-pembuatan-website-aplikasi-cloud-hosting';
-export const PANDUAN_PATH = `/jasa/${PANDUAN_SLUG}`;
-export const PANDUAN_LABEL = 'Panduan cloud hosting & kapasitas';
+import { PANDUAN_SLUG, PANDUAN_PATH, PANDUAN_LABEL, PANDUAN_TITLE } from '../shared/panduanMeta';
+export { PANDUAN_SLUG, PANDUAN_PATH, PANDUAN_LABEL };
 
 const TITLE = 'Jasa Pembuatan Website & Aplikasi Profesional dengan Cloud Hosting';
 const DESC = 'Layanan pembuatan website, company profile, toko online, dan aplikasi web dengan cloud hosting fleksibel. Ketahui batas traffic, jumlah pengguna, database, dan kebutuhan server sesuai skala bisnis.';
-const H1 = 'Jasa Pembuatan Website dan Aplikasi dengan Cloud Hosting Sesuai Kebutuhan Traffic dan Pengguna';
+const H1 = PANDUAN_TITLE;
 
 const esc = (s: unknown) => String(s ?? '').replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]!));
 const p = (t: string) => `<p>${esc(t)}</p>`;

@@ -4,6 +4,7 @@ import { PROJECT_COLS, PROJECT_EMBED, shapeProject } from './projects';
 import { seoPage, SEO_PATHS, SEO_LASTMOD } from './seoPages';
 import { katalogPage, KATALOG_PATHS } from './katalogPages';
 import { panduanCloud, PANDUAN_PATH } from './panduanCloud';
+import { PANDUAN_TITLE, PANDUAN_EXCERPT, PANDUAN_DATE, PANDUAN_COVER } from '../shared/panduanMeta';
 
 const MEDIA_KEY = /^uploads\/[0-9a-f-]{36}\.(png|jpg|webp|gif)$/;
 const SLUG = /^[a-z0-9-]{1,100}$/;
@@ -117,10 +118,12 @@ export async function pages(req: Request, env: Env, path: string): Promise<Respo
     const all = await get(env, `articles?status=eq.published&slug=not.is.null&select=title,slug,excerpt,created_at&order=created_at.desc&limit=${per + 1}&offset=${(pg - 1) * per}`);
     const more = all.length > per, a = all.slice(0, per);
     if (pg > 1 && !a.length) return notFound(origin);
+    // Artikel panduan (statis, tidak ada di database) selalu di paling atas halaman pertama, dengan sampul infografis.
+    const panduanItem = `<a class="item item-cover" href="${PANDUAN_PATH}"><img src="${PANDUAN_COVER}-836.webp" width="836" height="470" alt="${esc(PANDUAN_TITLE)}" loading="lazy" decoding="async"><span><small>${PANDUAN_DATE} · Panduan</small><h2>${esc(PANDUAN_TITLE)}</h2><p>${esc(PANDUAN_EXCERPT)}</p></span></a>`;
     const pager = pg > 1 || more ? `<nav class="pager" aria-label="Halaman artikel">${pg > 1 ? `<a rel="prev" href="${pg === 2 ? '/articles' : '/articles?page=' + (pg - 1)}">← Lebih baru</a>` : '<span></span>'}<small>Halaman ${pg}</small>${more ? `<a rel="next" href="/articles?page=${pg + 1}">Lebih lama →</a>` : '<span></span>'}</nav>` : '';
     return layout(origin, { title: pg > 1 ? `Artikel (halaman ${pg}) — RUtusdev` : 'Artikel — RUtusdev', desc: 'Catatan tentang pengembangan website, web application, dan solusi digital.', path: pg > 1 ? `/articles?page=${pg}` : path,
-      body: `<h1>Artikel</h1><div class="list">${a.length ? a.filter((x: any) => SLUG.test(x.slug || '')).map((x: any) =>
-        `<a class="item" href="/articles/${x.slug}"><small>${esc((x.created_at || '').slice(0, 10))}</small><h2>${esc(x.title)}</h2><p>${esc(x.excerpt)}</p></a>`).join('') : '<p>Belum ada artikel.</p>'}</div>${pager}` });
+      body: `<h1>Artikel</h1><div class="list">${pg === 1 ? panduanItem : ''}${a.length ? a.filter((x: any) => SLUG.test(x.slug || '')).map((x: any) =>
+        `<a class="item" href="/articles/${x.slug}"><small>${esc((x.created_at || '').slice(0, 10))}</small><h2>${esc(x.title)}</h2><p>${esc(x.excerpt)}</p></a>`).join('') : pg === 1 ? '' : '<p>Belum ada artikel.</p>'}</div>${pager}` });
   }
 
   const m = path.match(/^\/(articles|work|services)\/([^/]+)$/);

@@ -16,7 +16,7 @@ export default function Contact({ wa, email }: { wa?: string; email: string }) {
     const id = setInterval(() => {
       if (window.turnstile && box.current && !wid.current) {
         wid.current = window.turnstile.render(box.current, {
-          sitekey: key, theme: 'dark', action: 'lead',  // server menolak token tanpa aksi "lead" (mis. token widget login admin)
+          sitekey: key, theme: 'light', action: 'lead',  // server menolak token tanpa aksi "lead" (mis. token widget login admin)
           callback: (t: string) => setToken(t), 'expired-callback': () => setToken(''), 'error-callback': () => setToken(''),
         });
         clearInterval(id);
@@ -49,10 +49,10 @@ export default function Contact({ wa, email }: { wa?: string; email: string }) {
   }
 
   return (
-    <section className="dark contact-s" id="contact" data-nav="dark">
+    <section className="blue contact-s" id="contact" data-nav="blue">
       <div className="wrap contact">
         <div>
-          <p className="pill pill-dark">Kontak</p>
+          <p className="pill pill-blue">Kontak</p>
           <h2><b>Ceritakan apa yang ingin Anda bangun.</b></h2>
           <p className="lead">Kami balas dalam 1×24 jam kerja.</p>
           <p className="links">
