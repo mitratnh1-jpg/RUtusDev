@@ -7,7 +7,7 @@ const Contact = lazy(() => import('./Contact'));
 type P = { wa?: string; email: string };
 
 const shell = (children?: ReactNode, ref?: Ref<HTMLElement>) => (
-  <section ref={ref} className="dark contact-s" id="contact" data-nav="dark" style={children ? undefined : { minHeight: 620 }} aria-busy={children ? undefined : true}>{children}</section>
+  <section ref={ref} className="blue contact-s" id="contact" data-nav="blue" style={children ? undefined : { minHeight: 620 }} aria-busy={children ? undefined : true}>{children}</section>
 );
 
 export default function Defer(p: P) {

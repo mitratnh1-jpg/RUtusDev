@@ -4,6 +4,7 @@ import { PROJECT_COLS, PROJECT_EMBED, shapeProject } from './projects';
 import { seoPage, SEO_PATHS, SEO_LASTMOD } from './seoPages';
 import { katalogPage, KATALOG_PATHS } from './katalogPages';
 import { panduanCloud, PANDUAN_PATH } from './panduanCloud';
+import { KATALOG, ICON_SVG } from '../shared/katalog';
 import { PANDUAN_TITLE, PANDUAN_EXCERPT, PANDUAN_DATE, PANDUAN_COVER } from '../shared/panduanMeta';
 
 const MEDIA_KEY = /^uploads\/[0-9a-f-]{36}\.(png|jpg|webp|gif)$/;
@@ -35,6 +36,10 @@ const pic = (key: unknown, alt: string, sizes: string, extra = '') => {
   return /\.gif$/.test(String(key)) ? `<img ${extra} src="/media/${k}" alt="${esc(alt)}">`
     : `<img ${extra} src="/media/${k}?w=960" srcset="${[320, 640, 960, 1280].map(w => `/media/${k}?w=${w} ${w}w`).join(', ')}" sizes="${sizes}" alt="${esc(alt)}">`;
 };
+// Menu "Katalog layanan" di navbar halaman server: sama dengan beranda, dibuka lewat hover/fokus (tanpa JS).
+const KATALOG_MENU = `<div class="nav-dd"><a class="nav-dd-btn" href="/layanan" aria-haspopup="true">Katalog layanan<i aria-hidden="true"></i></a><div class="nav-dd-menu"><div class="nav-dd-panel">${
+  KATALOG.filter(k => k.kind === 'price').map(k => `<a href="/layanan/${k.slug}"><span class="ico" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round">${ICON_SVG[k.icon]}</svg></span><span><b>${esc(k.short)}</b><small>${esc(k.headline)}</small></span></a>`).join('')
+}<a class="nav-dd-all" href="/layanan">Lihat semua katalog &amp; harga →</a></div></div></div>`;
 const safeUrl = (u: unknown) => (/^https?:\/\//.test(String(u ?? '')) ? esc(u) : '');
 
 async function get<T = any[]>(env: Env, path: string): Promise<T> {
@@ -67,7 +72,7 @@ ${ICONS}
 <link rel="preconnect" href="https://fonts.googleapis.com"><link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@300;400;500;600;700&family=Inter:wght@400;500;600&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
 <link rel="stylesheet" href="/styles.css">${p.ld ? (Array.isArray(p.ld) ? p.ld.map(ld).join('') : ld(p.ld)) : ''}</head><body>
-<header class="nav"><a class="logo" href="/">${MARK}RUtusdev</a><nav class="nav-links"><a href="/layanan">Layanan</a><a href="/jasa">Jasa</a><a href="/#work">Karya</a><a href="/articles">Artikel</a><a href="/#contact">Kontak</a></nav><div class="nav-actions"><a class="btn btn-ghost" href="/articles">Artikel</a><a class="btn btn-blue" href="/#contact">Hubungi kami</a></div></header>
+<header class="nav"><a class="logo" href="/">${MARK}RUtusdev</a><nav class="nav-links">${KATALOG_MENU}<a href="/jasa">Jasa</a><a href="/#work">Karya</a><a href="/articles">Artikel</a><a href="/#contact">Kontak</a></nav><div class="nav-actions"><a class="btn btn-ghost" href="/articles">Artikel</a><a class="btn btn-blue" href="/#contact">Hubungi kami</a></div></header>
 <main class="doc${p.wide ? ' wide' : ''}" data-nav="light"><div class="wrap">${p.body}</div></main>
 <footer class="foot dark" data-nav="dark"><div class="wrap"><a class="logo" href="/">${MARK}RUtusdev</a><p>Rancang. Bangun. Luncurkan.</p><nav class="foot-links" aria-label="Layanan"><a href="/layanan">Katalog layanan &amp; harga</a><a href="/jasa">Semua layanan &amp; wilayah</a></nav></div></footer>${p.status === 404 ? '' : '<script type="module" src="/chat-embed.js"></script>'}${beacon()}</body></html>`;
   return new Response(html, { status: p.status || 200, headers: { 'Content-Type': 'text/html; charset=utf-8',

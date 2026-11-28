@@ -1093,3 +1093,43 @@ button:focus-visible, a:focus-visible {
 .dscroll,.atrack,.kat-track{-webkit-overflow-scrolling:touch;touch-action:pan-x pan-y}
 /* 5) Bagian bawah (artikel, klien, kontak) dilukis hanya saat mendekati layar. Ukuran perkiraan dijaga agar scrollbar tidak melompat. */
 #articles,#clients{content-visibility:auto;contain-intrinsic-size:auto 560px}
+
+/* ===== Navbar: menu "Katalog layanan" (dropdown yang bisa digulir) ===== */
+.nav-dd{position:relative}
+.nav-dd-btn{font:inherit;color:inherit;background:none;border:0;padding:0;cursor:pointer;display:inline-flex;align-items:center;gap:7px;opacity:.72;transition:opacity .2s}
+.nav-dd-btn:hover,.nav-dd.open .nav-dd-btn,.nav-dd:focus-within .nav-dd-btn{opacity:1}
+.nav-dd-btn i{width:6px;height:6px;border-right:1.6px solid currentColor;border-bottom:1.6px solid currentColor;transform:translateY(-2px) rotate(45deg);transition:transform .25s}
+.nav-dd.open .nav-dd-btn i{transform:translateY(1px) rotate(-135deg)}
+.nav-dd-menu{position:absolute;top:100%;left:-18px;padding-top:18px;z-index:5;visibility:hidden;opacity:0;transform:translateY(6px);pointer-events:none;transition:opacity .2s,transform .25s,visibility 0s .25s}
+.nav-dd.open .nav-dd-menu{visibility:visible;opacity:1;transform:none;pointer-events:auto;transition-delay:0s}
+@media (hover:hover) and (min-width:761px){.nav-dd:hover .nav-dd-menu,.nav-dd:focus-within .nav-dd-menu{visibility:visible;opacity:1;transform:none;pointer-events:auto;transition-delay:0s}}
+.nav-dd-panel{width:min(390px,92vw);max-height:min(68vh,470px);overflow-y:auto;overscroll-behavior:contain;padding:8px;border-radius:16px;background:#fff;color:var(--ink);border:1px solid var(--line);box-shadow:0 18px 46px -12px rgba(2,50,86,.32);scrollbar-width:thin}
+.nav-dd-panel a{display:grid;grid-template-columns:38px 1fr;gap:12px;align-items:center;padding:10px 12px;border-radius:11px;font-size:14.5px;opacity:1;color:var(--ink);transition:background .15s}
+.nav-dd-panel a::after{display:none}
+.nav-dd-panel a:hover,.nav-dd-panel a:focus-visible{background:#eaf5fc}
+.nav-dd-panel .ico{display:grid;place-items:center;width:38px;height:38px;border-radius:10px;background:#e3f2fb;color:var(--blue)}
+.nav-dd-panel .ico svg{width:20px;height:20px}
+.nav-dd-panel b{display:block;font-weight:600;line-height:1.25}
+.nav-dd-panel small{display:block;margin-top:2px;font:12px var(--mono);color:var(--dim)}
+.nav-dd-panel .nav-dd-all{display:block;margin-top:6px;padding:12px;border-top:1px solid var(--line);border-radius:0 0 11px 11px;font:500 12px var(--mono);letter-spacing:.03em;color:var(--blue);position:sticky;bottom:-8px;background:#fff}
+@media (max-width:760px){
+  .nav-dd{width:100%}
+  .nav-dd-btn{width:100%;justify-content:space-between;opacity:.9;padding:10px 8px;font-size:18px}
+  .nav-dd-menu{position:static;display:none;visibility:visible;opacity:1;transform:none;pointer-events:auto;padding:2px 0 8px;transition:none}
+  .nav-dd.open .nav-dd-menu{display:block}
+  .nav-dd-panel{width:auto;max-height:46vh;background:rgba(255,255,255,.06);border-color:rgba(255,255,255,.12);box-shadow:none;color:#fff}
+  .nav-dd-panel a{color:#fff;font-size:15px}
+  .nav-dd-panel a:hover,.nav-dd-panel a:focus-visible{background:rgba(255,255,255,.1)}
+  .nav-dd-panel .ico{background:rgba(255,255,255,.12);color:#fff}
+  .nav-dd-panel small{color:rgba(255,255,255,.7)}
+  .nav-dd-panel .nav-dd-all{color:#7dd3fc;background:transparent;position:static}
+}
+@media (prefers-reduced-motion:reduce){.nav-dd-menu,.nav-dd-btn i{transition:none}}
+
+/* ===== Formulir: pilihan layanan & paket ===== */
+.contact-s select{cursor:pointer}
+.contact-s optgroup{color:#7dd3fc;font:600 12px var(--mono);font-style:normal}
+.contact-s optgroup option{color:#fff;font:400 15px var(--body)}
+.pick-hint{display:block;margin-top:2px;font:400 13px/1.45 var(--body);letter-spacing:0;color:rgba(255,255,255,.88)}
+.pick-hint b{font-weight:600;color:#fff}
+.pick-hint a{color:#fff;text-decoration:underline;text-underline-offset:3px}

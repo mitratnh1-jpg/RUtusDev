@@ -45,3 +45,15 @@ TAMBAHAN: scroll landing lebih ringan (anti-lag)
 - web/src/Dots.tsx           ±30 fps, berhenti saat tab tersembunyi
 - web/src/CodeRain.tsx       ±15 fps (kartu belakang ±5), resolusi maks 1,5x, fillStyle tidak diganti berulang
 - web/public/styles.css      backdrop-filter pada nav & tombol chat dibuang (latar dipekatkan), will-change kartu hanya saat disentuh, content-visibility pada #articles & #clients (ditambahkan di akhir file)
+
+TAMBAHAN: paket awal Mulai, menu "Katalog layanan" di navbar, layanan & paket terintegrasi di formulir
+- shared/formOptions.ts (baru)  daftar pilihan formulir: 3 paket (siteFacts) + 7 layanan katalog; label & validasi satu sumber
+- web/src/formPick.ts (baru)    pilihan dari bagian lain dibawa ke formulir (juga lewat tautan /?pilih=slug#contact)
+- web/src/App.tsx               Paket: tab awal = Mulai; tombol "Pilih paket X" mengisi formulir; navbar: dropdown "Katalog layanan" (menggantikan tautan "Layanan")
+- web/src/Contact.tsx           select "Layanan atau paket" berkelompok (Paket / Katalog layanan) + ringkasan estimasi & tautan rincian
+- web/src/Defer.tsx             placeholder kontak ikut biru (sebelumnya sempat hitam sebelum formulir termuat)
+- worker/index.ts               validasi & label prospek memakai formOptions (nilai lama website/webapp/system/custom tetap diterima; default baru "konsultasi")
+- web/src/admin/util.ts         label dashboard memakai formOptions
+- worker/pages.ts, katalogPages.ts  dropdown katalog di navbar halaman server; tombol "Minta penawaran" di /layanan/:slug membawa ?pilih=slug
+- web/public/styles.css         gaya dropdown navbar & hint formulir (ditambahkan di akhir file)
+Tidak perlu mengubah database: kolom leads.service_interest bertipe text tanpa batasan nilai.

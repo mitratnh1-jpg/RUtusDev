@@ -8,7 +8,7 @@ const esc = (s: unknown) => String(s ?? '').replace(/[&<>"']/g, c => ({ '&': '&a
 export const KATALOG_PATHS: string[] = ['/layanan', ...KATALOG.map(k => `/layanan/${k.slug}`)];
 
 const crumbs = (name?: string) => `<nav class="crumbs" aria-label="Breadcrumb"><a href="/">Beranda</a><i>›</i>${name ? `<a href="/layanan">Layanan</a><i>›</i><span>${esc(name)}</span>` : '<span>Layanan</span>'}</nav>`;
-const cta = (extra = '') => `<p class="cta"><a class="btn btn-blue" href="/#contact">Minta penawaran</a>${extra || '<a class="btn btn-line" href="/layanan">Semua layanan</a>'}</p>`;
+const cta = (extra = '', slug = '') => `<p class="cta"><a class="btn btn-blue" href="/${slug ? '?pilih=' + slug : ''}#contact">Minta penawaran</a>${extra || '<a class="btn btn-line" href="/layanan">Semua layanan</a>'}</p>`;
 const note = (t: string) => `<aside class="kt-note"><span aria-hidden="true">i</span><p>${esc(t)}</p></aside>`;
 
 // Ikon besar samar di pojok kanan bawah kartu.
@@ -26,13 +26,13 @@ function pricePage(k: KCat): string {
   }).join('');
   const others = KATALOG.filter(x => x.slug !== k.slug).map(x => `<a href="/layanan/${x.slug}">${esc(x.short)}</a>`).join('');
   return `${crumbs(k.short)}<header class="kt-head"><p class="kt-tag">Bagian ${k.no} katalog</p><h1>${esc(k.title)}</h1><p class="lead">${esc(k.summary)}</p>` +
-    `<p class="kt-hl"><span>Estimasi</span><b>${esc(k.headline)}</b></p>${cta()}</header>` +
+    `<p class="kt-hl"><span>Estimasi</span><b>${esc(k.headline)}</b></p>${cta('', k.slug)}</header>` +
     (k.audience ? `<p class="kt-aud"><b>Cocok untuk:</b> ${esc(k.audience)}</p>` : '') +
     groups + k.notes.map(note).join('') +
     (k.slug === 'cloud-server' ? `<p class="kt-small"><a href="/jasa/jasa-pembuatan-website-aplikasi-cloud-hosting">Panduan lengkap: batas traffic, pengguna, database, dan storage tiap paket →</a></p>` : '') +
     `<h2>Yang perlu Anda ketahui</h2><ul class="kt-facts"><li>Biaya pengembangan dibayar <b>satu kali</b> sesuai ruang lingkup yang disepakati.</li><li><b>Domain</b> dibeli terpisah, idealnya atas nama dan akun Anda.</li><li><b>Cloud/server berbayar</b> hanya jika kebutuhan Anda memerlukannya.</li><li>Biaya <b>pihak ketiga</b> (payment gateway, WhatsApp API, SMS, email premium) dibayar sesuai tagihan penyedia.</li></ul>` +
     `<p class="kt-small">${esc(KATALOG_NOTE)} <a href="/layanan/ketentuan">Baca ketentuan kerja sama</a>.</p>` +
-    `<h2>Layanan lainnya</h2><p class="rel">${others}</p>${cta()}`;
+    `<h2>Layanan lainnya</h2><p class="rel">${others}</p>${cta('', k.slug)}`;
 }
 
 function securityPage(k: KCat): string {

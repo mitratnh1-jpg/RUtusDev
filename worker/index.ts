@@ -1,4 +1,5 @@
 import { pages } from './pages';
+import { SERVICE_LABELS, SERVICE_VALUES } from '../shared/formOptions';
 import { buildPdf } from './pdf';
 import { handleChat, type AiBinding } from './chat';
 import { secure } from './security';
@@ -67,7 +68,7 @@ async function overLimit(rl: RL, ip: string, bucket: string, max: number): Promi
 }
 
 const esc = (s: unknown) => String(s ?? '').replace(/[&<>"']/g, c => ({ '&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;' }[c]!));
-const SERVICE_LABEL: Record<string, string> = { website: 'Website / landing page', webapp: 'Aplikasi web', system: 'Sistem informasi', custom: 'Aplikasi custom' };
+const SERVICE_LABEL = SERVICE_LABELS;
 // Notifikasi lead baru: email lewat Resend dan/atau webhook (mis. n8n/Make/Zapier untuk WhatsApp, Telegram, Slack).
 // Dijalankan lewat ctx.waitUntil: kegagalan hanya dicatat di log dan tidak menggagalkan pengiriman form.
 async function notifyLead(env: Env, l: { name: string; email: string; whatsapp: string | null; service: string; brief: string | null }) {
@@ -89,7 +90,7 @@ async function notifyLead(env: Env, l: { name: string; email: string; whatsapp: 
   }
   await Promise.allSettled(jobs);
 }
-const SERVICES = ['website','webapp','system','custom'];
+const SERVICES = SERVICE_VALUES;
 const json = (d: unknown, s = 200, h: Record<string,string> = {}) =>
   new Response(JSON.stringify(d), { status: s, headers: { 'Content-Type': 'application/json', 'Cache-Control': 'no-store', ...h } });
 const clean = (v: unknown, max: number) => (typeof v === 'string' ? v.trim().slice(0, max) : '');
@@ -685,7 +686,7 @@ async function handleLead(req: Request, env: Env, ctx: ExecutionContext): Promis
   if (clean(body.website, 50)) return json({ ok: true });
   const name = clean(body.name, 100), email = clean(body.email, 150).toLowerCase();
   const whatsapp = clean(body.whatsapp, 20).replace(/[^\d+\-\s]/g, ''), brief = clean(body.brief, 1500);
-  const service = SERVICES.includes(body.service as string) ? (body.service as string) : 'website';
+  const service = SERVICES.includes(body.service as string) ? (body.service as string) : 'konsultasi';
   if (!name || !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) return json({ error: 'invalid' }, 422);
   const token = clean(body['cf-turnstile-response'], 2048);
   if (!token) return json({ error: 'captcha' }, 400);

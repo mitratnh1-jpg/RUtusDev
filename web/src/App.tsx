@@ -8,6 +8,8 @@ import { onScrollFrame, clamp, reducedMotion } from './scroll';
 import { useContentState } from './useContent';
 import { imgProps } from './media';
 import { PACKAGES, RECURRING, STACK, STEPS } from '../../shared/siteFacts';
+import { KATALOG, ICON_SVG } from '../../shared/katalog';
+import { pickService } from './formPick';
 import { PANDUAN_PATH, PANDUAN_TITLE, PANDUAN_DATE, PANDUAN_COVER } from '../../shared/panduanMeta';
 import type { Article, Client, Project, Service, Stats, Testimonial } from './types';
 
@@ -32,7 +34,14 @@ function Mark() {
 function Nav() {
   const [open, setOpen] = useState(false);
   const [theme, setTheme] = useState('dark');
-  const links: [string, string][] = [['#services', 'Layanan'], ['#work', 'Karya'], ['#process', 'Proses'], ['#technology', 'Teknologi'], ['#packages', 'Paket'], ['#articles', 'Artikel'], ['#contact', 'Kontak']];
+  const links: [string, string][] = [['#work', 'Karya'], ['#process', 'Proses'], ['#technology', 'Teknologi'], ['#packages', 'Paket'], ['#articles', 'Artikel'], ['#contact', 'Kontak']];
+  const [dd, setDd] = useState(false);  // menu "Katalog layanan"
+  useEffect(() => {
+    if (!dd) return;
+    const close = () => setDd(false), esc = (e: KeyboardEvent) => { if (e.key === 'Escape') setDd(false); };
+    document.addEventListener('click', close); document.addEventListener('keydown', esc);
+    return () => { document.removeEventListener('click', close); document.removeEventListener('keydown', esc); };
+  }, [dd]);
   useEffect(() => {
     const els = Array.from(document.querySelectorAll<HTMLElement>('[data-nav]'));
     let cur = 'dark';
@@ -48,6 +57,18 @@ function Nav() {
     <header className={`nav nav-${theme}${open ? ' is-open' : ''}`}>
       <a className="logo" href="#top"><Mark />RUtusdev</a>
       <nav className={'nav-links' + (open ? ' open' : '')} onClick={() => setOpen(false)}>
+        <div className={'nav-dd' + (dd ? ' open' : '')}>
+          <button type="button" className="nav-dd-btn" aria-haspopup="true" aria-expanded={dd} onClick={e => { e.stopPropagation(); setDd(v => !v); }}>Katalog layanan<i aria-hidden="true" /></button>
+          <div className="nav-dd-menu"><div className="nav-dd-panel">
+            {KATALOG.filter(k => k.kind === 'price').map(k => (
+              <a key={k.slug} href={`/layanan/${k.slug}`}>
+                <span className="ico" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round" strokeLinejoin="round" dangerouslySetInnerHTML={{ __html: ICON_SVG[k.icon] }} /></span>
+                <span><b>{k.short}</b><small>{k.headline}</small></span>
+              </a>
+            ))}
+            <a className="nav-dd-all" href="/layanan">Lihat semua katalog &amp; harga →</a>
+          </div></div>
+        </div>
         {links.map(([h, t]) => <a key={h} href={h}>{t}</a>)}
       </nav>
       <div className="nav-actions">
@@ -324,7 +345,7 @@ function Technology() {
 }
 
 function Packages() {
-  const [pk, setPk] = useState(1);
+  const [pk, setPk] = useState(0);  // awal: Mulai
   const P = PACKAGES[pk];
   return (
     <section className="light sub pk" id="packages" data-nav="light">
@@ -335,7 +356,7 @@ function Packages() {
           {PACKAGES.map((x, i) => <button key={x.n} role="tab" aria-selected={i === pk} className={i === pk ? 'on' : ''} onClick={() => setPk(i)}>{x.n}</button>)}
         </div>
         <div className="pkg" key={P.n}><p className="price">{P.pr}</p><p>{P.d}</p></div>
-        <div className="row"><a className="btn btn-blue" href="#contact">Pilih paket {P.n}</a><a className="btn btn-ghost" href={P.href}>Lihat rincian harga</a></div>
+        <div className="row"><a className="btn btn-blue" href="#contact" onClick={() => pickService('paket-' + P.n.toLowerCase())}>Pilih paket {P.n}</a><a className="btn btn-ghost" href={P.href}>Lihat rincian harga</a></div>
         <p className="chips pk-rec" aria-label="Biaya berulang opsional">{RECURRING.map(r => <span key={r}>{r}</span>)}</p>
         <p className="small">Estimasi awal dalam Rupiah. Harga final mengikuti analisis kebutuhan, konten, integrasi, dan kompleksitas. <a href="/layanan">Katalog lengkap</a></p>
       </div>
