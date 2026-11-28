@@ -840,3 +840,11 @@ button:focus-visible, a:focus-visible {
 .rel{display:flex;flex-wrap:wrap;gap:8px;margin-top:12px}.rel a{border:1px solid var(--line);border-radius:999px;padding:7px 14px;font-size:14px;color:var(--ink)!important;background:#fff}.rel a:hover{border-color:var(--blue);color:var(--blue)!important}
 .foot-links{display:flex;flex-wrap:wrap;gap:6px 16px;width:100%;font:12px var(--mono);color:#85858f}.foot-links a:hover{color:#fff}
 .foot .logo .mark{fill:#fff}
+
+/* Kredit pengembang di footer */
+.foot .credit{flex:0 0 100%;display:flex;justify-content:center;margin-top:8px;padding-top:24px;border-top:1px solid rgba(255,255,255,.06)}
+.credit-pill{display:inline-flex;align-items:center;gap:10px;padding:9px 18px;border:1px solid rgba(56,189,248,.22);border-radius:999px;background:linear-gradient(135deg,rgba(56,189,248,.09),rgba(255,255,255,.02));font:12px var(--mono);letter-spacing:.05em;color:#85858f;transition:border-color .25s,box-shadow .25s}
+.credit-pill:hover{border-color:rgba(56,189,248,.55);box-shadow:0 0 0 4px rgba(56,189,248,.08)}
+.credit-ico{width:16px;height:16px;fill:none;stroke:var(--sky);stroke-width:2;stroke-linecap:round;stroke-linejoin:round;flex:none}
+.credit-handle{color:#fff;font-weight:600;letter-spacing:.03em}
+
