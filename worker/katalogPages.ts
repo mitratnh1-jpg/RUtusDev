@@ -29,6 +29,7 @@ function pricePage(k: KCat): string {
     `<p class="kt-hl"><span>Estimasi</span><b>${esc(k.headline)}</b></p>${cta()}</header>` +
     (k.audience ? `<p class="kt-aud"><b>Cocok untuk:</b> ${esc(k.audience)}</p>` : '') +
     groups + k.notes.map(note).join('') +
+    (k.slug === 'cloud-server' ? `<p class="kt-small"><a href="/jasa/jasa-pembuatan-website-aplikasi-cloud-hosting">Panduan lengkap: batas traffic, pengguna, database, dan storage tiap paket →</a></p>` : '') +
     `<h2>Yang perlu Anda ketahui</h2><ul class="kt-facts"><li>Biaya pengembangan dibayar <b>satu kali</b> sesuai ruang lingkup yang disepakati.</li><li><b>Domain</b> dibeli terpisah, idealnya atas nama dan akun Anda.</li><li><b>Cloud/server berbayar</b> hanya jika kebutuhan Anda memerlukannya.</li><li>Biaya <b>pihak ketiga</b> (payment gateway, WhatsApp API, SMS, email premium) dibayar sesuai tagihan penyedia.</li></ul>` +
     `<p class="kt-small">${esc(KATALOG_NOTE)} <a href="/layanan/ketentuan">Baca ketentuan kerja sama</a>.</p>` +
     `<h2>Layanan lainnya</h2><p class="rel">${others}</p>${cta()}`;

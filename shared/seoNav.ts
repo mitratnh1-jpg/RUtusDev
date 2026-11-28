@@ -20,4 +20,5 @@ export const NAV_OFFERS: [slug: string, label: string][] = [
   ['jasa-website-murah-profesional-jateng', 'Website murah & profesional'],
   ['jasa-redesign-website-perusahaan', 'Redesign website'],
   ['jasa-maintenance-website-aplikasi-bisnis', 'Maintenance website & aplikasi'],
+  ['jasa-pembuatan-website-aplikasi-cloud-hosting', 'Panduan cloud hosting & kapasitas'],
 ];

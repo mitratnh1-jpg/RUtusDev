@@ -1016,3 +1016,35 @@ button:focus-visible, a:focus-visible {
 .kt-tn{margin-top:10px;font-size:12.5px;color:rgba(255,255,255,.7)}
 .kt-more summary:focus-visible{outline:2px solid #fff;outline-offset:3px;border-radius:4px}
 @media(prefers-reduced-motion:reduce){.kc-wm,.kt-wm{transition:none}.kt-more[open]>.kt-tiers,.kt-more[open]>.kt-tn{animation:none}}
+
+/* ===== Artikel panduan (tabel & daftar isi) ===== */
+.ar p,.ar ul,.ar ol{max-width:74ch}
+.ar>p,.ar>ul,.ar>ol{margin-top:12px}
+.ar ul,.ar ol{margin-left:1.3em;display:grid;gap:6px}.ar li::marker{color:var(--blue)}
+.ar h2{scroll-margin-top:90px}.ar h3{font-size:19px;margin:26px 0 6px}
+.ar-toc{margin-top:28px;padding:18px 20px;border:1px solid #d6e8f5;border-radius:16px;background:linear-gradient(135deg,#f4faff,#fff);max-width:74ch}
+.ar-toc b{font:500 11px var(--mono);letter-spacing:.08em;text-transform:uppercase;color:var(--dim)}
+.ar-toc ol{margin:10px 0 0 1.2em;display:grid;gap:4px;columns:2 260px;column-gap:28px}.ar-toc a{color:var(--blue)}.ar-toc a:hover{text-decoration:underline}
+.kt-tw{margin-top:16px;overflow-x:auto;border:1px solid #e4e8ef;border-radius:14px;background:#fff}
+.kt-tw:focus-visible{outline:2px solid var(--blue);outline-offset:2px}
+.kt-table{width:100%;border-collapse:collapse;font-size:14.5px;min-width:560px}
+.kt-table th,.kt-table td{padding:12px 14px;text-align:left;vertical-align:top;border-top:1px solid #eef0f4}
+.kt-table thead th{background:var(--blue);color:#fff;font:500 12px var(--mono);letter-spacing:.05em;text-transform:uppercase;border-top:0}
+.kt-table tbody th{font-weight:600;color:var(--ink);background:#f8fbfd}
+.kt-table tbody tr:hover td,.kt-table tbody tr:hover th{background:#f1f8fd}
+
+/* Artikel: infografis. Lebar penuh kolom (1080px), teks tetap 74ch agar nyaman dibaca. */
+.ar-fig{margin:34px 0;max-width:none}
+.ar-fig a{display:block;border:1px solid #d6e8f5;border-radius:16px;overflow:hidden;background:#f4faff;box-shadow:0 10px 30px -18px rgba(3,105,161,.35);cursor:zoom-in;transition:box-shadow .2s,transform .2s}
+.ar-fig a:hover{box-shadow:0 14px 36px -16px rgba(3,105,161,.45);transform:translateY(-1px)}
+.ar-fig img{display:block;width:100%;height:auto;aspect-ratio:1672/941}
+.ar-fig figcaption{max-width:74ch;margin-top:12px;font-size:14px;line-height:1.55;color:var(--dim)}
+.ar-fig-hint{display:none;margin-bottom:4px;font:500 11px var(--mono);letter-spacing:.06em;text-transform:uppercase;color:var(--blue)}
+.ar-fig+.ar-toc{margin-top:8px}
+@media (max-width:760px){
+  .ar-fig{margin:26px -20px}
+  .ar-fig a{border-radius:0;border-left:0;border-right:0;box-shadow:none}
+  .ar-fig figcaption{padding:0 20px;font-size:13.5px}
+  .ar-fig-hint{display:block}
+}
+@media (prefers-reduced-motion:reduce){.ar-fig a{transition:none}.ar-fig a:hover{transform:none}}

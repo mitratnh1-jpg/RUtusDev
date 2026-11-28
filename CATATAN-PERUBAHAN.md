@@ -16,3 +16,15 @@ DIUBAH
 - worker/chat.ts               pengetahuan chatbot AI memuat katalog, garansi, skema pembayaran
 
 Setelah menyalin: npm run build (atau deploy seperti biasa).
+
+TAMBAHAN: artikel panduan cloud hosting (hanya tampil bila dibuka, tidak ada di landing)
+- worker/panduanCloud.ts   (baru) halaman /jasa/jasa-pembuatan-website-aplikasi-cloud-hosting
+- worker/pages.ts          rute artikel + sitemap
+- shared/seoNav.ts         tautan di hub /jasa dan daftar "layanan lainnya" halaman /jasa
+- worker/katalogPages.ts   tautan dari /layanan/cloud-server
+- web/public/styles.css    gaya tabel & daftar isi artikel
+
+TAMBAHAN: infografis di artikel panduan cloud hosting (3 gambar)
+- web/public/artikel/*.webp  (baru) 3 gambar x 2 ukuran (836 & 1672 px), dari PNG ~1,9 MB menjadi ~190-235 KB. Salin folder ini ke web/public/artikel/
+- worker/panduanCloud.ts     helper fig() + 3 gambar: ringkasan (atas, sebelum daftar isi), pilihan infrastruktur (bagian Klasifikasi Kapasitas), perbandingan hosting (akhir bagian Cloudflare & Supabase); gambar ditambahkan ke JSON-LD Article
+- web/public/styles.css      gaya .ar-fig (ditambahkan di akhir file)

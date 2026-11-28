@@ -3,6 +3,7 @@ import type { Env } from './index';
 import { PROJECT_COLS, PROJECT_EMBED, shapeProject } from './projects';
 import { seoPage, SEO_PATHS, SEO_LASTMOD } from './seoPages';
 import { katalogPage, KATALOG_PATHS } from './katalogPages';
+import { panduanCloud, PANDUAN_PATH } from './panduanCloud';
 
 const MEDIA_KEY = /^uploads\/[0-9a-f-]{36}\.(png|jpg|webp|gif)$/;
 const SLUG = /^[a-z0-9-]{1,100}$/;
@@ -90,7 +91,7 @@ export async function pages(req: Request, env: Env, path: string): Promise<Respo
     const u = (loc: string, d?: string, extra = '') => `<url><loc>${esc(origin + loc)}</loc>${d ? `<lastmod>${d.slice(0, 10)}</lastmod>` : ''}${extra}</url>`;
     const xml = `<?xml version="1.0" encoding="UTF-8"?><urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9" xmlns:image="http://www.google.com/schemas/sitemap-image/1.1">` +
       u('/', SEO_LASTMOD, stat('/logo.png', 'Logo RUtusdev') + stat('/og-image.png', 'RUtusdev — Jasa Pembuatan Website & Aplikasi Jawa Tengah')) + u('/articles') +
-      SEO_PATHS.map(x => u(x, SEO_LASTMOD)).join('') + KATALOG_PATHS.map(x => u(x, SEO_LASTMOD)).join('') +
+      SEO_PATHS.map(x => u(x, SEO_LASTMOD)).join('') + KATALOG_PATHS.map(x => u(x, SEO_LASTMOD)).join('') + u(PANDUAN_PATH, SEO_LASTMOD) +
       a.filter((x: any) => SLUG.test(x.slug || '')).map((x: any) => u('/articles/' + x.slug, x.created_at, im(x.cover_key, x.title))).join('') +
       p.filter((x: any) => SLUG.test(x.slug || '')).map((x: any) => u('/work/' + x.slug, x.published_at || x.created_at, im(x.cover_key, x.title))).join('') +
       sv.filter((x: any) => SLUG.test(x.slug || '')).map((x: any) => u('/services/' + x.slug, x.created_at)).join('') + '</urlset>';
@@ -99,6 +100,7 @@ export async function pages(req: Request, env: Env, path: string): Promise<Respo
 
   // Halaman SEO per wilayah/penawaran (data statis, tanpa database).
   if (path === '/jasa' || path.startsWith('/jasa/')) {
+    if (path === PANDUAN_PATH) return layout(origin, panduanCloud(origin));
     const sp = seoPage(path, origin);
     return sp ? layout(origin, sp) : notFound(origin);
   }
