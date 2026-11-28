@@ -60,7 +60,7 @@ function buildBundle(content: unknown): Bundle {
   add('Layanan', 'Jenis layanan', `RUtusdev membangun ${SERVICE_KINDS.join(', ')}.`);
   for (const s of arr(c.services).slice(0, 20)) { const o = obj(s), t = str(o.title, 80); if (t) add('Layanan', t, `${t}. ${str(o.summary, 300)}`); }
   for (const p of PACKAGES) add('Paket', `Paket ${p.n}`, `Paket ${p.n} (${p.pr}): ${p.d} Harga indikatif (estimasi awal); harga final ditentukan setelah diskusi kebutuhan.`);
-  for (const k of KATALOG.filter(x => x.kind === 'price')) add('Katalog', k.short, `${k.title} (${k.headline}). ${k.summary} ${k.groups.flatMap(g => g.items).map(i => `${i.n}: ${price(i)}`).join('; ')}. ${k.notes.join(' ')} Detail: /layanan/${k.slug}.`);
+  for (const k of KATALOG.filter(x => x.kind === 'price')) add('Katalog', k.short, `${k.title} (${k.headline}). ${k.summary} ${k.groups.flatMap(g => g.items).map(i => `${i.n}: ${price(i)}${i.sub ? ` (${i.sub})` : ''}`).join('; ')}. ${k.notes.join(' ')} Detail: /layanan/${k.slug}.`);
   add('Katalog', 'Catatan harga', `${KATALOG_NOTE} Biaya berulang opsional: ${RECURRING.join('; ')}.`);
   add('Garansi', 'Garansi bug dan keamanan', GARANSI.map(([, t, d]) => `${t}: ${d}`).join(' '));
   add('Pembayaran', 'Skema pembayaran', `Skema yang disarankan: ${PEMBAYARAN.map(([n, pc, d]) => `${n} ${pc}% (${d})`).join('; ')}.`);

@@ -11,7 +11,24 @@ export interface KItem {
   plus?: boolean;       // "Rp… – Rp…+"
   per?: string;         // satuan berulang, mis. "/bulan"
   txt?: string;         // teks harga bebas (mis. "Penawaran khusus"); menggantikan angka
+  sub?: string;         // keterangan singkat di bawah harga (mis. "tergantung kompleksitas")
+  tiers?: string[][];   // fitur per tingkat kompleksitas: [dasar, menengah, kompleks]
 }
+export const TIER_LABELS = ['Dasar', 'Menengah', 'Kompleks'];
+export const TIER_HINTS = ['mendekati batas bawah', 'di rentang tengah', 'mendekati batas atas / perlu analisis'];
+
+// Isi ikon (SVG 24×24, garis) per kategori; dipakai kartu landing (React) dan halaman server.
+export const ICON_SVG: Record<string, string> = {
+  page: '<rect x="3" y="4" width="18" height="16" rx="2.5"/><path d="M3 9h18M7 14h6M7 17h3"/>',
+  panel: '<rect x="3" y="4" width="18" height="16" rx="2.5"/><path d="M9 4v16M13 9h5M13 13h5M13 17h3"/>',
+  cart: '<path d="M3 4h2.2l2 10.2a1 1 0 0 0 1 .8h8.6a1 1 0 0 0 1-.8L19.5 8H6.2"/><circle cx="9.5" cy="19" r="1.4"/><circle cx="16.5" cy="19" r="1.4"/>',
+  app: '<rect x="3" y="3.5" width="7.5" height="7.5" rx="2"/><rect x="13.5" y="3.5" width="7.5" height="7.5" rx="2"/><rect x="3" y="13.5" width="7.5" height="7.5" rx="2"/><path d="M17.2 14v6.5M14 17.2h6.5"/>',
+  cloud: '<path d="M7 18.5a4.5 4.5 0 0 1-.6-8.96A6 6 0 0 1 18 9.6a4.5 4.5 0 0 1-.5 8.9H7Z"/><path d="M12 12v4.5m0 0-1.8-1.8M12 16.5l1.8-1.8"/>',
+  shield: '<path d="M12 3 5 6v5.5c0 4.3 2.8 7.6 7 9.5 4.2-1.9 7-5.2 7-9.5V6l-7-3Z"/><path d="m9 12 2.2 2.2L15.5 10"/>',
+  plus: '<circle cx="12" cy="12" r="8.5"/><path d="M12 8v8M8 12h8"/>',
+  lock: '<rect x="4.5" y="10.5" width="15" height="10" rx="2.5"/><path d="M8 10.5V8a4 4 0 0 1 8 0v2.5M12 14.5v2.5"/>',
+  flow: '<circle cx="5.5" cy="6" r="2.2"/><circle cx="18.5" cy="12" r="2.2"/><circle cx="5.5" cy="18" r="2.2"/><path d="M7.7 6h4.8a3 3 0 0 1 3 3v.8M7.7 18h4.8a3 3 0 0 0 3-3v-.8"/>',
+};
 export interface KGroup { title?: string; intro?: string; items: KItem[] }
 export interface KCat {
   slug: string;
@@ -95,21 +112,29 @@ export const KATALOG: KCat[] = [
   },
   {
     slug: 'aplikasi-web', kind: 'price', no: '04', title: 'Aplikasi web & sistem informasi', short: 'Aplikasi web & sistem informasi', icon: 'app',
-    headline: 'Mulai Rp5 jt', summary: 'Sistem yang mengikuti alur kerja Anda: absensi, inventaris, keuangan, CRM, bengkel, sekolah, LMS, hingga aplikasi custom.',
-    points: ['9 jenis sistem siap dikembangkan', 'Hak akses berbasis peran', 'Aplikasi custom Rp8–15 jt+'],
-    groups: [{ items: [
-      { n: 'Sistem absensi', lo: 5000000, from: true, d: 'Presensi, rekap, filter periode, ekspor laporan.' },
-      { n: 'Pendaftaran online', lo: 6000000, from: true, d: 'Formulir, unggah berkas, status pendaftaran, panel admin.' },
-      { n: 'Inventaris', lo: 5500000, from: true, d: 'Data barang, stok, mutasi, laporan.' },
-      { n: 'Keuangan', lo: 7500000, from: true, d: 'Pencatatan transaksi, kategori, laporan dasar.' },
-      { n: 'CRM', lo: 7500000, from: true, d: 'Data pelanggan, tindak lanjut, riwayat interaksi.' },
-      { n: 'Sistem bengkel', lo: 7500000, from: true, d: 'Data pelanggan/kendaraan, servis, status pekerjaan, transaksi.' },
-      { n: 'Sistem informasi sekolah', lo: 10000000, from: true, d: 'Modul data sekolah (siswa, kelas, pengguna, administrasi) sesuai kebutuhan dan hak akses.' },
-      { n: 'LMS', lo: 12000000, from: true, d: 'Materi, kelas, tugas, evaluasi, pengguna, progres belajar.' },
+    headline: 'Rp1 jt – Rp12 jt+', summary: 'Sistem yang mengikuti alur kerja Anda: absensi, inventaris, keuangan, CRM, bengkel, sekolah, LMS, hingga aplikasi custom. Harga mengikuti kompleksitas dan fitur.',
+    points: ['9 jenis sistem, tiap jenis punya 3 tingkat kompleksitas', 'Harga menyesuaikan fitur yang dipilih', 'Aplikasi custom Rp8–15 jt+'],
+    groups: [{ intro: 'Buka tiap kartu untuk melihat contoh fitur per tingkat kompleksitas. Makin banyak fitur dan integrasi, harga makin mendekati batas atas.', items: [
+      { n: 'Sistem absensi', lo: 1000000, hi: 5000000, sub: 'tergantung kompleksitas', d: 'Presensi, rekap, filter periode, ekspor laporan.', tiers: [
+        ['Login pengguna', 'Presensi harian', 'Rekap sederhana'], ['Filter periode', 'Ekspor laporan', 'Dashboard rekap'], ['Beberapa peran (admin, atasan, karyawan)', 'Jadwal/shift, izin, dan cuti', 'Banyak lokasi atau cabang']] },
+      { n: 'Pendaftaran online', lo: 2000000, hi: 5000000, sub: 'tergantung kompleksitas', d: 'Formulir, unggah berkas, status pendaftaran, panel admin.', tiers: [
+        ['Formulir pendaftaran', 'Data pendaftar', 'Panel admin sederhana'], ['Unggah berkas', 'Status pendaftaran', 'Filter dan ekspor data'], ['Beberapa jalur/gelombang pendaftaran', 'Verifikasi bertahap', 'Notifikasi dan integrasi pihak ketiga']] },
+      { n: 'Inventaris', lo: 3000000, hi: 7500000, sub: 'tergantung kompleksitas', d: 'Data barang, stok, mutasi, laporan.', tiers: [
+        ['Data barang', 'Stok masuk dan keluar'], ['Mutasi barang', 'Kategori', 'Laporan stok'], ['Beberapa gudang/cabang', 'Hak akses berbasis peran', 'Audit log dan laporan lanjutan']] },
+      { n: 'Keuangan', lo: 3000000, hi: 7500000, sub: 'tergantung kompleksitas', d: 'Pencatatan transaksi, kategori, laporan dasar.', tiers: [
+        ['Pencatatan pemasukan dan pengeluaran', 'Kategori transaksi'], ['Laporan dasar per periode', 'Ekspor laporan'], ['Beberapa akun/kas', 'Anggaran dan persetujuan', 'Hak akses dan audit log']] },
+      { n: 'CRM', lo: 3000000, hi: 7500000, sub: 'tergantung kompleksitas', d: 'Data pelanggan, tindak lanjut, riwayat interaksi.', tiers: [
+        ['Data pelanggan', 'Riwayat interaksi'], ['Tindak lanjut dan pengingat', 'Status prospek', 'Pencarian dan filter'], ['Alur penjualan banyak tim', 'Hak akses dan laporan', 'Integrasi WhatsApp/email']] },
+      { n: 'Sistem bengkel', lo: 3000000, hi: 7500000, sub: 'tergantung kompleksitas', d: 'Data pelanggan/kendaraan, servis, status pekerjaan, transaksi.', tiers: [
+        ['Data pelanggan dan kendaraan', 'Pencatatan servis'], ['Status pekerjaan', 'Transaksi dan riwayat servis'], ['Stok suku cadang', 'Beberapa cabang', 'Laporan dan notifikasi otomatis']] },
+      { n: 'Sistem informasi sekolah', lo: 5000000, hi: 10000000, sub: 'tergantung kompleksitas', d: 'Modul data sekolah (siswa, kelas, pengguna, administrasi) sesuai kebutuhan dan hak akses.', tiers: [
+        ['Data siswa', 'Data kelas', 'Pengguna dasar'], ['Administrasi sekolah', 'Hak akses admin dan guru', 'Laporan'], ['Modul tambahan (nilai, absensi, keuangan sekolah)', 'Banyak peran pengguna', 'Ekspor dan laporan lanjutan']] },
+      { n: 'LMS', lo: 5000000, hi: 12000000, sub: 'tergantung kompleksitas', d: 'Materi, kelas, tugas, evaluasi, pengguna, progres belajar.', tiers: [
+        ['Kelas dan materi', 'Pengguna (pengajar dan siswa)'], ['Tugas', 'Evaluasi/kuis', 'Progres belajar'], ['Banyak peran dan kelas', 'Laporan lanjutan', 'Integrasi dan jumlah pengguna besar (melalui analisis)']] },
       { n: 'Aplikasi web custom', lo: 8000000, hi: 15000000, plus: true, d: 'Fitur dan modul khusus berdasarkan analisis kebutuhan.' },
     ] }],
-    notes: ['Sistem multi-modul, multi-cabang, multi-tenant, integrasi kompleks, atau jumlah pengguna besar wajib melalui analisis kebutuhan dan penawaran khusus.', 'Harga aplikasi merupakan estimasi awal.'],
-    seo: { title: 'Jasa Pembuatan Aplikasi Web & Sistem Informasi — Harga | RUtusdev', desc: 'Sistem absensi, inventaris, keuangan, CRM, bengkel, sekolah, dan LMS mulai Rp5 juta. Aplikasi web custom Rp8–15 juta+ dari RUtusdev.' },
+    notes: ['Rincian fitur per tingkat kompleksitas adalah contoh cakupan untuk membantu memperkirakan biaya. Harga akhir ditetapkan setelah analisis kebutuhan.', 'Sistem multi-modul, multi-cabang, multi-tenant, integrasi kompleks, atau jumlah pengguna besar wajib melalui analisis kebutuhan dan penawaran khusus.'],
+    seo: { title: 'Jasa Pembuatan Aplikasi Web & Sistem Informasi — Harga | RUtusdev', desc: 'Sistem absensi mulai Rp1 juta, pendaftaran online Rp2–5 juta, inventaris, keuangan, CRM, bengkel Rp3–7,5 juta, sekolah dan LMS Rp5–12 juta. Harga sesuai kompleksitas.' },
   },
   {
     slug: 'cloud-server', kind: 'price', no: '05', title: 'Cloud hosting & server', short: 'Cloud hosting & server', icon: 'cloud',

@@ -1,6 +1,6 @@
 // Halaman katalog layanan: /layanan (hub) dan /layanan/:slug (halaman anak per kategori). Data di shared/katalog.ts.
 // Dirender di server (HTML penuh, tanpa JavaScript) seperti halaman /jasa, jadi tidak membutuhkan database dan mudah dibaca crawler.
-import { KATALOG, KATALOG_NOTE, KATALOG_CLOSING, PRINSIP, KEAMANAN, KEAMANAN_NOTE, GARANSI, KETENTUAN, PEMBAYARAN, ALUR, price, type KCat, type KItem } from '../shared/katalog';
+import { KATALOG, KATALOG_NOTE, KATALOG_CLOSING, PRINSIP, KEAMANAN, KEAMANAN_NOTE, GARANSI, KETENTUAN, PEMBAYARAN, ALUR, ICON_SVG, TIER_LABELS, TIER_HINTS, price, type KCat, type KItem } from '../shared/katalog';
 
 export type KatalogPage = { title: string; desc: string; path: string; body: string; ld: unknown[]; kw?: string[]; wide: true };
 const esc = (s: unknown) => String(s ?? '').replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]!));
@@ -11,14 +11,18 @@ const crumbs = (name?: string) => `<nav class="crumbs" aria-label="Breadcrumb"><
 const cta = (extra = '') => `<p class="cta"><a class="btn btn-blue" href="/#contact">Minta penawaran</a>${extra || '<a class="btn btn-line" href="/layanan">Semua layanan</a>'}</p>`;
 const note = (t: string) => `<aside class="kt-note"><span aria-hidden="true">i</span><p>${esc(t)}</p></aside>`;
 
-const card = (i: KItem, n: number) => `<li class="kt-card" style="--i:${n}"><h3>${esc(i.n)}</h3><p class="kt-price">${esc(price(i))}</p>${i.d ? `<p class="kt-d">${esc(i.d)}</p>` : ''}</li>`;
+// Ikon besar samar di pojok kanan bawah kartu.
+const wm = (icon: string) => `<svg class="kt-wm" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">${ICON_SVG[icon] || ''}</svg>`;
+const tiers = (i: KItem) => i.tiers?.length ? `<details class="kt-more"><summary>Lihat kompleksitas &amp; fitur</summary><ol class="kt-tiers">${i.tiers.map((f, n) => `<li><b>${TIER_LABELS[n] || ''}</b><em>${TIER_HINTS[n] || ''}</em><ul>${f.map(x => `<li>${esc(x)}</li>`).join('')}</ul></li>`).join('')}</ol><p class="kt-tn">Harga akhir ditetapkan setelah analisis kebutuhan.</p></details>` : '';
+const card = (i: KItem, n: number, icon: string) => `<li class="kt-card" style="--i:${n}">${wm(icon)}<h3>${esc(i.n)}</h3><p class="kt-price">${esc(price(i))}</p>${i.sub ? `<p class="kt-sub">${esc(i.sub)}</p>` : ''}${i.d ? `<p class="kt-d">${esc(i.d)}</p>` : ''}${tiers(i)}</li>`;
+const info = (t: string, d: string, i: number, icon: string) => `<li class="kt-card" style="--i:${i}">${wm(icon)}<h3>${esc(t)}</h3><p class="kt-d">${esc(d)}</p></li>`;
 const mini = (i: KItem) => `<li><span>${esc(i.n)}</span><b>${esc(price(i))}</b></li>`;
 
 function pricePage(k: KCat): string {
   const groups = k.groups.map((g, gi) => {
     const addon = gi > 0; // grup kedua dst. (mis. add-on toko online) tampil sebagai daftar ringkas
     return `${g.title ? `<h2>${esc(g.title)}</h2>` : ''}${g.intro ? `<p class="kt-intro">${esc(g.intro)}</p>` : ''}` +
-      (addon ? `<ul class="kt-list">${g.items.map(mini).join('')}</ul>` : `<ul class="kt-grid">${g.items.map(card).join('')}</ul>`);
+      (addon ? `<ul class="kt-list">${g.items.map(mini).join('')}</ul>` : `<ul class="kt-grid">${g.items.map((x, n) => card(x, n, k.icon)).join('')}</ul>`);
   }).join('');
   const others = KATALOG.filter(x => x.slug !== k.slug).map(x => `<a href="/layanan/${x.slug}">${esc(x.short)}</a>`).join('');
   return `${crumbs(k.short)}<header class="kt-head"><p class="kt-tag">Bagian ${k.no} katalog</p><h1>${esc(k.title)}</h1><p class="lead">${esc(k.summary)}</p>` +
@@ -32,9 +36,9 @@ function pricePage(k: KCat): string {
 
 function securityPage(k: KCat): string {
   return `${crumbs(k.short)}<header class="kt-head"><p class="kt-tag">Bagian ${k.no} katalog</p><h1>${esc(k.title)}</h1><p class="lead">${esc(k.summary)}</p><p class="kt-hl"><span>Komitmen</span><b>${esc(k.headline)}</b></p>${cta()}</header>` +
-    `<h2>Standar keamanan yang diterapkan</h2><ul class="kt-grid kt-grid-s">${KEAMANAN.map(([t, d], i) => `<li class="kt-card" style="--i:${i}"><h3>${esc(t)}</h3><p class="kt-d">${esc(d)}</p></li>`).join('')}</ul>${note(KEAMANAN_NOTE)}` +
+    `<h2>Standar keamanan yang diterapkan</h2><ul class="kt-grid kt-grid-s">${KEAMANAN.map(([t, d], i) => info(t, d, i, 'lock')).join('')}</ul>${note(KEAMANAN_NOTE)}` +
     `<h2>Jaminan bug, keamanan &amp; tanggung jawab</h2><div class="kt-acc">${GARANSI.map(([c, t, d], i) => `<details${i < 2 ? ' open' : ''}><summary><i>${c}</i><span>${esc(t)}</span></summary><p>${esc(d)}</p></details>`).join('')}</div>` +
-    `<h2>Prinsip layanan</h2><ul class="kt-grid kt-grid-s">${PRINSIP.map(([t, d], i) => `<li class="kt-card" style="--i:${i}"><h3>${esc(t)}</h3><p class="kt-d">${esc(d)}</p></li>`).join('')}</ul>` +
+    `<h2>Prinsip layanan</h2><ul class="kt-grid kt-grid-s">${PRINSIP.map(([t, d], i) => info(t, d, i, 'shield')).join('')}</ul>` +
     `<p class="kt-small"><a href="/layanan/ketentuan">Ketentuan kerja sama &amp; alur pengembangan →</a></p>${cta()}`;
 }
 
@@ -55,8 +59,8 @@ export function katalogPage(path: string, origin: string): KatalogPage | null {
   if (path === '/layanan') {
     const priced = KATALOG.filter(k => k.kind === 'price');
     const body = `${crumbs()}<header class="kt-head"><p class="kt-tag">Katalog layanan</p><h1>Layanan Website &amp; Aplikasi</h1><p class="lead">Paket pengembangan, cloud hosting, pemeliharaan, serta jaminan keamanan dan tanggung jawab teknis. Solusi digital yang terukur, transparan, dan dapat dipelihara.</p>${cta('<a class="btn btn-line" href="/layanan/ketentuan">Ketentuan kerja sama</a>')}</header>` +
-      `<ul class="kt-hub">${KATALOG.map((k, i) => `<li style="--i:${i}"><a href="/layanan/${k.slug}"><span class="kt-no">${k.no}</span><h2>${esc(k.short)}</h2><p class="kt-hp">${esc(k.headline)}</p><p>${esc(k.summary)}</p><span class="kt-go">Lihat detail <i>→</i></span></a></li>`).join('')}</ul>` +
-      `<h2>Prinsip layanan</h2><ul class="kt-grid kt-grid-s">${PRINSIP.map(([t, d], i) => `<li class="kt-card" style="--i:${i}"><h3>${esc(t)}</h3><p class="kt-d">${esc(d)}</p></li>`).join('')}</ul>` +
+      `<ul class="kt-hub">${KATALOG.map((k, i) => `<li style="--i:${i}"><a href="/layanan/${k.slug}">${wm(k.icon)}<span class="kt-no">${k.no}</span><h2>${esc(k.short)}</h2><p class="kt-hp">${esc(k.headline)}</p><p>${esc(k.summary)}</p><span class="kt-go">Lihat detail <i>→</i></span></a></li>`).join('')}</ul>` +
+      `<h2>Prinsip layanan</h2><ul class="kt-grid kt-grid-s">${PRINSIP.map(([t, d], i) => info(t, d, i, 'shield')).join('')}</ul>` +
       `<h2>Penawaran yang transparan</h2><p class="kt-intro">Setiap proyek memiliki rincian biaya pengembangan, domain, cloud/server, layanan pihak ketiga, dan pemeliharaan secara terpisah. Dengan begitu Anda mengetahui apa yang dibayar, apa yang dijamin, serta kapan perlu meningkatkan paket.</p>${note(KATALOG_NOTE)}${cta()}`;
     return { title: 'Katalog Layanan Website & Aplikasi — Harga & Jaminan | RUtusdev', path, wide: true, body,
       desc: 'Katalog harga website, toko online, aplikasi web, cloud hosting, dan maintenance dari RUtusdev, lengkap dengan garansi bug 30 hari dan ketentuan kerja sama yang jelas.',
