@@ -16,16 +16,17 @@ export default function CodeRain({ seed = 0, calm = false }: { seed?: number; ca
     const m = { x: -1, y: -1 };
     const size = () => {
       lastW = c.offsetWidth;
-      const dpr = Math.min(devicePixelRatio || 1, 2);
+      const dpr = Math.min(devicePixelRatio || 1, 1.5);
       w = c.offsetWidth; h = c.offsetHeight; c.width = w * dpr; c.height = h * dpr; g.setTransform(dpr, 0, 0, dpr, 0, 0);
       cols = Math.ceil(w / CW); rows = Math.ceil(h / CH); g.font = `${CH - 1}px "JetBrains Mono", monospace`; g.textBaseline = 'top';
     };
     const draw = (now: number) => {
       raf = reduce ? 0 : requestAnimationFrame(draw);
-      if (!vis || now - last < (calmRef.current ? 160 : 42)) return; // ± 24 fps (±6 fps bila calm)
+      if (!vis || document.hidden || now - last < (calmRef.current ? 200 : 66)) return; // ±15 fps (±5 fps bila calm): cukup untuk efek huruf bergulir
       last = now;
       const t = now / 1000 + seed * 7;
       g.clearRect(0, 0, w, h);
+      let fs = '';  // mengganti fillStyle itu mahal: hanya bila warnanya memang berbeda
       const cx = 0.5 + 0.26 * Math.sin(t * 0.45), cy = 0.55 + 0.18 * Math.cos(t * 0.33), asp = w / h;
       for (let r = 0; r < rows; r++) {
         const sp = 6 + ((r * 7 + seed * 3) % 9) * 2, off = Math.floor(r * 37 + t * sp * (r % 2 ? 1 : -1) + 4000);
@@ -34,11 +35,11 @@ export default function CodeRain({ seed = 0, calm = false }: { seed?: number; ca
           let d = Math.max(0, 1 - Math.hypot((u - cx) * asp, v - cy) / 0.62);
           if (m.x >= 0) d += Math.max(0, 1 - Math.hypot((u - m.x) * asp, v - m.y) / 0.2) * 0.9;
           let ch: string;
-          if (d > 0.22) { ch = RAMP[Math.min(9, Math.floor(d * 9 + Math.random() * 1.4))]; g.fillStyle = `rgba(53,70,255,${Math.min(0.95, 0.3 + d * 0.7)})`; }
+          if (d > 0.22) { ch = RAMP[Math.min(9, Math.floor(d * 9 + Math.random() * 1.4))]; const c2 = `rgba(53,70,255,${(Math.round(Math.min(0.95, 0.3 + d * 0.7) * 10) / 10)})`; if (c2 !== fs) g.fillStyle = fs = c2; }
           else {
             ch = TXT[(((off + k) % TXT.length) + TXT.length) % TXT.length];
             if (Math.random() < 0.012) ch = '#%@*+=<>/'[Math.floor(Math.random() * 9)];
-            g.fillStyle = 'rgba(105,98,90,.42)';
+            if (fs !== 'g') g.fillStyle = (fs = 'g', 'rgba(105,98,90,.42)');
           }
           if (ch !== ' ') g.fillText(ch, k * CW, r * CH);
         }

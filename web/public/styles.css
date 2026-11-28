@@ -1071,3 +1071,25 @@ button:focus-visible, a:focus-visible {
 @media (max-width:760px){.doc .item-cover{grid-template-columns:1fr;gap:14px}}
 /* Sampul infografis 16:9 di kartu 1.2:1: geser fokus ke kiri agar judul tidak terpotong. */
 .acover img.pan{object-position:12% 50%}
+
+/* ===== Performa scroll =====
+   1) Blur latar (backdrop-filter) pada elemen fixed dihitung ulang di setiap frame saat konten di belakangnya bergerak: dibuang,
+      diganti latar yang lebih pekat agar teks di belakang tetap tidak mengganggu. */
+.nav,.nav-dark,.nav-blue,.chat-fab{backdrop-filter:none;-webkit-backdrop-filter:none}
+.nav{background:rgba(255,255,255,.96)}
+.nav-dark{background:rgba(24,24,27,.95)}
+.nav-blue{background:rgba(2,132,199,.95)}
+.chat{--ch-fab:rgba(255,255,255,.96)}
+.chat[data-theme="dark"]{--ch-fab:rgba(24,24,27,.95)}
+.chat[data-theme="blue"]{--ch-fab:rgba(2,132,199,.95)}
+/* 2) Lapisan GPU permanen (will-change) pada banyak kartu memboroskan memori: aktifkan hanya saat disentuh. */
+.kc,.dk{will-change:auto}
+.kc:hover,.kc:active,.dk.front{will-change:transform}
+/* 3) Animasi berjalan terus di bagian yang tidak terlihat: hentikan bila tab disembunyikan. */
+@media (prefers-reduced-motion:no-preference){
+  .badge .dot,.bars i,.typer u{animation-play-state:running}
+}
+/* 4) Gulir mendatar & vertikal tidak saling menahan di layar sentuh. */
+.dscroll,.atrack,.kat-track{-webkit-overflow-scrolling:touch;touch-action:pan-x pan-y}
+/* 5) Bagian bawah (artikel, klien, kontak) dilukis hanya saat mendekati layar. Ukuran perkiraan dijaga agar scrollbar tidak melompat. */
+#articles,#clients{content-visibility:auto;contain-intrinsic-size:auto 560px}

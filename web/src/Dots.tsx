@@ -21,9 +21,12 @@ export default function Dots() {
           a: Math.random() * 0.7 + 0.2, vx: (Math.random() - 0.5) * 0.18, vy: (Math.random() - 0.5) * 0.18 };
       });
     };
-    const draw = () => {
+    let last = 0;
+    const draw = (now = 0) => {
       if (!reduce) raf = requestAnimationFrame(draw);
-      if (!vis) return;
+      if (!vis || document.hidden) return;
+      if (!reduce && now - last < 30) return;  // ±30 fps: titik bergerak lambat, 60 fps tidak terlihat bedanya tapi membebani CPU saat scroll
+      last = now;
       x.clearRect(0, 0, w, h);
       for (const p of pts) {
         if (!reduce) { p.x += p.vx; p.y += p.vy; if (p.x < 0) p.x = w; if (p.x > w) p.x = 0; if (p.y < 0) p.y = h; if (p.y > h) p.y = 0; }
@@ -36,7 +39,7 @@ export default function Dots() {
     const rs = () => { if (c.offsetWidth !== lastW) size(); };
     const io = new IntersectionObserver(([e]) => { vis = e.isIntersecting; if (vis && reduce) draw(); }, { threshold: 0 });
     io.observe(parent); parent.addEventListener('pointermove', move); addEventListener('resize', rs);
-    size(); draw();
+    size(); draw(performance.now());
     return () => { cancelAnimationFrame(raf); io.disconnect(); parent.removeEventListener('pointermove', move); removeEventListener('resize', rs); };
   }, []);
   return <canvas id="dots" ref={ref} aria-hidden="true" />;

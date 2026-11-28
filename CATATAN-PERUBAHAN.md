@@ -36,3 +36,12 @@ TAMBAHAN: artikel panduan tampil di daftar artikel + landing; formulir kontak be
 - web/src/types.ts, App.tsx     kartu pertama di bagian "Dari artikel" di landing (tautan ke /jasa/...-cloud-hosting)
 - web/src/Contact.tsx           bagian Kontak: dark -> blue (data-nav="blue"), Turnstile tema terang
 - web/public/styles.css         gaya formulir biru (.contact-s) + daftar artikel bersampul (ditambahkan di akhir file)
+
+TAMBAHAN: scroll landing lebih ringan (anti-lag)
+- web/src/scroll.ts          handler scroll dua fase: semua pembacaan layout dulu, baru semua penulisan (tidak ada layout thrashing)
+- web/src/App.tsx            Nav/Hero/Trust/Progress: tinggi di-cache, render ulang & penulisan style hanya saat nilai berubah; hero berhenti menulis setelah lewat
+- web/src/Chat.tsx           setPast hanya dipanggil saat berubah (sebelumnya bisa merender ulang Chat tiap frame saat scroll)
+- web/src/useSectionTheme.ts sama: hanya setState saat tema berganti
+- web/src/Dots.tsx           ±30 fps, berhenti saat tab tersembunyi
+- web/src/CodeRain.tsx       ±15 fps (kartu belakang ±5), resolusi maks 1,5x, fillStyle tidak diganti berulang
+- web/public/styles.css      backdrop-filter pada nav & tombol chat dibuang (latar dipekatkan), will-change kartu hanya saat disentuh, content-visibility pada #articles & #clients (ditambahkan di akhir file)

@@ -97,10 +97,14 @@ export default function Chat({ wa, email, services }: Props) {
 
   // Hero bersih dari chatbot: tampil setelah tepi bawah Hero naik melewati ±50% tinggi layar; sembunyi lagi bila kembali ke Hero
   // (batas sembunyi sedikit lebih longgar agar tidak berkedip). Tanpa elemen Hero = langsung tampil.
+  const pastRef = useRef(false);  // setState (walau nilainya sama) saat scroll bisa merender ulang seluruh Chat tiap frame: hanya panggil saat berubah
   useEffect(() => onScrollFrame((_y, vh) => {
     if (!heroRef.current || !heroRef.current.isConnected) heroRef.current = document.querySelector('section.hero');
     const b = heroRef.current?.getBoundingClientRect().bottom;
-    setPast(p => b === undefined ? true : p ? b < vh * 0.62 : b < vh * 0.5);
+    const next = b === undefined ? true : pastRef.current ? b < vh * 0.62 : b < vh * 0.5;
+    if (next === pastRef.current) return undefined;
+    pastRef.current = next;
+    return () => setPast(next);
   }), []);
   useEffect(() => { if (!past || !open) { stopSpeak(); stopListen(); } }, [past, open]);  // eslint-disable-line react-hooks/exhaustive-deps
 

@@ -35,10 +35,13 @@ function Nav() {
   const links: [string, string][] = [['#services', 'Layanan'], ['#work', 'Karya'], ['#process', 'Proses'], ['#technology', 'Teknologi'], ['#packages', 'Paket'], ['#articles', 'Artikel'], ['#contact', 'Kontak']];
   useEffect(() => {
     const els = Array.from(document.querySelectorAll<HTMLElement>('[data-nav]'));
+    let cur = 'dark';
     return onScrollFrame(() => {
       let t = 'dark';
       for (const e of els) { const r = e.getBoundingClientRect(); if (r.top <= 36 && r.bottom > 36) t = e.dataset.nav || 'dark'; }
-      setTheme(t);
+      if (t === cur) return undefined;  // render ulang header hanya saat warnanya benar-benar berganti
+      cur = t;
+      return () => setTheme(t);
     });
   }, []);
   return (
@@ -91,15 +94,23 @@ function Hero({ h, clients = [] }: { h: { eyebrow?: string; headline?: string; h
     if (reducedMotion()) return;
     const body = el.querySelector<HTMLElement>('.hero-in')!, dots = el.querySelector<HTMLElement>('#dots')!;
     const tags = el.querySelectorAll<HTMLElement>('.tag'), corners = el.querySelector<HTMLElement>('.corners')!;
-    return onScrollFrame(y => {
-      const hp = clamp(y / (el.offsetHeight * 0.55));
+    let H = el.offsetHeight, lastHp = -1;
+    const ro = new ResizeObserver(() => { H = el.offsetHeight; }); ro.observe(el);
+    const off = onScrollFrame(y => {
+      const hp = clamp(y / (H * 0.55));
+      if (hp === 1 && lastHp === 1) return undefined;  // hero sudah di luar layar: tidak ada yang perlu digambar ulang
+      lastHp = hp;
+      const cs = clamp(1 - y / (H * 0.4));
+      return () => {
       // teks naik sambil mengecil & memudar; titik bergerak lebih lambat (paralaks)
       body.style.transform = `translate3d(0,${(-hp * 80).toFixed(1)}px,0) scale(${(1 - hp * 0.06).toFixed(3)})`; body.style.opacity = String(clamp(1 - hp * 1.25));
       dots.style.transform = `translate3d(0,${(hp * 70).toFixed(1)}px,0)`;
       tags.forEach((t, i) => { t.style.opacity = String(clamp(1 - hp * 2)); t.style.translate = `0 ${(-hp * (30 + i * 22)).toFixed(1)}px`; });
       // sudut bawah membulat besar → kotak, lebih lama & lebih jelas
-      corners.style.setProperty('--s', String(clamp(1 - y / (el.offsetHeight * 0.4))));
+      corners.style.setProperty('--s', String(cs));
+      };
     });
+    return () => { ro.disconnect(); off(); };
   }, []);
   return (
     <section className="hero" data-nav="dark" ref={root}>
@@ -235,7 +246,13 @@ function Trust({ t, stats }: { t: Testimonial[]; stats?: Stats }) {
   useEffect(() => {
     const el = root.current!, cr = el.querySelector<HTMLElement>('.corners')!;
     if (reducedMotion()) { cr.style.setProperty('--s', '1'); return; }
-    return onScrollFrame((_, vh) => { cr.style.setProperty('--s', String(clamp(el.getBoundingClientRect().top / (vh * 0.45)))); });
+    let last = '';
+    return onScrollFrame((_, vh) => {
+      const s = String(clamp(el.getBoundingClientRect().top / (vh * 0.45)));
+      if (s === last) return undefined;  // sudut sudah penuh/di luar jangkauan: lewati
+      last = s;
+      return () => cr.style.setProperty('--s', s);
+    });
   }, []);
   const qs = t.slice(0, 2), st = statList(stats), cells: ReactNode[] = [];
   for (let i = 0; i < Math.max(qs.length, st.length); i++) {
@@ -418,10 +435,20 @@ function useReveal(dep: unknown) {
 
 function Progress() {
   const r = useRef<HTMLDivElement>(null);
-  useEffect(() => onScrollFrame((y, vh) => {
-    const max = document.documentElement.scrollHeight - vh;
-    r.current?.style.setProperty('--p', String(max > 0 ? clamp(y / max) : 0));
-  }), []);
+  useEffect(() => {
+    // scrollHeight memaksa hitung layout bila dibaca tiap frame: cukup dihitung ulang saat ukuran halaman berubah.
+    let max = 0, last = -1;
+    const calc = () => { max = document.documentElement.scrollHeight - innerHeight; };
+    calc();
+    const ro = new ResizeObserver(calc); ro.observe(document.body); addEventListener('resize', calc);
+    const off = onScrollFrame(y => {
+      const p = max > 0 ? clamp(y / max) : 0;
+      if (p === last) return undefined;
+      last = p;
+      return () => r.current?.style.setProperty('--p', String(p));
+    });
+    return () => { ro.disconnect(); removeEventListener('resize', calc); off(); };
+  }, []);
   return <div className="sprog" ref={r} aria-hidden="true" />;
 }
 

@@ -9,14 +9,17 @@ const THEMES = ['light', 'dark', 'blue'];
 
 export function useSectionTheme(ref: RefObject<HTMLElement>): SectionTheme {
   const [theme, setTheme] = useState<SectionTheme>('dark');
-  useEffect(() => onScrollFrame((_y, vh) => {
+  useEffect(() => { let cur: SectionTheme | null = null; return onScrollFrame((_y, vh) => {
     const r = ref.current?.getBoundingClientRect(), probe = r && r.height ? r.top + r.height / 2 : vh - 44;
     let found: SectionTheme | null = null;
     for (const e of Array.from(document.querySelectorAll<HTMLElement>('[data-nav]'))) {
       const b = e.getBoundingClientRect();
       if (b.top <= probe && b.bottom > probe) { const t = e.dataset.nav || 'dark'; found = (THEMES.includes(t) ? t : 'dark') as SectionTheme; }
     }
-    if (found) setTheme(found);  // tidak ada yang cocok (celah antarbagian): pertahankan warna terakhir
-  }), [ref]);
+    if (!found || found === cur) return undefined;  // celah antarbagian / tidak berubah: tidak perlu render ulang
+    cur = found;
+    const t = found;
+    return () => setTheme(t);
+  }); }, [ref]);
   return theme;
 }
